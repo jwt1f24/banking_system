@@ -8,7 +8,62 @@
 // create bank account
 void createAcc()
 {
-    printf("CREATE");
+    printf("\n========== CREATE ==========");
+    char name[999], acctype[999];
+    int idnum, pin;
+    while (true)
+    {
+        printf("\nEnter your name: ");
+        fgets(name, sizeof(name), stdin);
+        name[strcspn(name, "\n")] = '\0';
+        bool inputValid = true;
+        for (int i = 0; i < strlen(name); i++)
+        {
+            if (!isalpha(name[i]))
+            {
+                inputValid = false;
+                break;
+            }
+        }
+        if (inputValid != true)
+        {
+            printf("Invalid! Name must contain only letters.\n");
+            continue;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    printf("Enter your ID number: ");
+    scanf("%d", &idnum);
+
+    while (true)
+    {
+        printf("Choose account type (savings / current): ");
+        fgets(acctype, sizeof(acctype), stdin);
+        acctype[strcspn(acctype, "\n")] = '\0';
+        bool inputValid = true;
+        if (strcmp(acctype, "savings") == 0)
+        {
+            printf("Account type: Savings\n");
+            break;
+        }
+        else if (strcmp(acctype, "current") == 0)
+        {
+            printf("Account type: Current\n");
+            break;
+        }
+        else
+        {
+            printf("Invalid! Enter either 'savings' or 'current'.\n");
+            continue;
+        }
+    }
+
+    printf("Enter your 4-digit PIN: ");
+    scanf("%d", &pin);
 }
 
 // delete bank account
@@ -39,8 +94,7 @@ void remittance()
 void menu()
 {
     char option[999];
-    bool loop = true;
-    while (loop)
+    while (true)
     {
         printf("Please choose an operation:\n"
                "- Create New Bank Account (1 / create)\n"
@@ -57,22 +111,22 @@ void menu()
             createAcc();
             return;
         }
-        if (strcmp(option, "2") == 0 || strcmp(option, "delete") == 0)
+        else if (strcmp(option, "2") == 0 || strcmp(option, "delete") == 0)
         {
             deleteAcc();
             return;
         }
-        if (strcmp(option, "3") == 0 || strcmp(option, "deposit") == 0)
+        else if (strcmp(option, "3") == 0 || strcmp(option, "deposit") == 0)
         {
             deposit();
             return;
         }
-        if (strcmp(option, "4") == 0 || strcmp(option, "withdraw") == 0)
+        else if (strcmp(option, "4") == 0 || strcmp(option, "withdraw") == 0)
         {
             withdraw();
             return;
         }
-        if (strcmp(option, "5") == 0 || strcmp(option, "remittance") == 0)
+        else if (strcmp(option, "5") == 0 || strcmp(option, "remittance") == 0)
         {
             remittance();
             return;
@@ -84,7 +138,7 @@ void menu()
         }
         else
         {
-            printf("\nInvalid input! Enter a number or a lowercase word specified in the bracket.\n");
+            printf("\nInvalid! Enter a number or a lowercase word specified in the brackets.\n");
             menu();
             return;
         }
