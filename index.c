@@ -18,7 +18,7 @@ typedef struct
     double bal;
 } bankAccount;
 
-// takes in user input for storing info inside a new bank account
+// takes in user input to store info inside a new bank account
 void enterName(char *name, size_t size)
 {
     while (true)
@@ -145,32 +145,35 @@ void enterPIN(char *pin, size_t size)
         break;
     }
 }
-/*
-// checks if a random generated account number is taken or not
-int checkIfAccNoUnique(char *accNo)
+
+// checks index file in database directory to ensure generated account number is unique
+int checkIfAccNoUnique(long long *accNo)
 {
     FILE *file = fopen("database/index.txt", "r");
     if (file == NULL)
-        return 1;
-
-    char takenNo[10];
-    while (fscanf(file, "%s", takenNo) != EOF)
     {
-        if (strcmp(takenNo, accNo) == 0)
+        return 1; // file does NOT exist, account number is unique
+    }
+
+    long long existingNo;
+    while (fscanf(file, "%lld", &existingNo) != EOF)
+    {
+        if (existingNo == *accNo) // account number is NOT unique
         {
             fclose(file);
             return 0;
         }
     }
     fclose(file);
-    return 1;
+    return 1; // account number is unique
 }
-*/
+
+// generate a random account number btwn 7-9 digits
 void createAccNo(long long *accNo)
 {
     long long min = 1000000LL;                            // smallest 7-digit number
     long long max = 999999999LL;                          // biggest 9-digit number
-    *accNo = min + ((long long)rand() % (max - min + 1)); // formula to generate random number btwn 7-9 digits
+    *accNo = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
     printf("Account Number: %lld\n", *accNo);
 }
 
@@ -186,6 +189,7 @@ void createAcc()
     enterPIN(acc.pin, sizeof(acc.pin));
     acc.bal = 0;
 
+    checkIfAccNoUnique(&acc.accNo);
     createAccNo(&acc.accNo);
 }
 
