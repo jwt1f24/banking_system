@@ -78,7 +78,7 @@ void enterID(char *id, size_t size)
                 break;
             }
         }
-        if (!inputValid)
+        if (inputValid != true)
         {
             printf("Invalid! ID must contain only 8-digit numbers.\n\n");
             continue;
@@ -110,10 +110,39 @@ void enterAccType(char *accType, size_t size)
         }
     }
 }
-void enterPIN(char *pin)
+void enterPIN(char *pin, size_t size)
 {
-    printf("Enter your 4-digit PIN: ");
-    scanf("%d", &pin);
+    while (true)
+    {
+        printf("Enter your 4-digit PIN: ");
+        fgets(pin, size, stdin);
+        if (strchr(pin, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
+        pin[strcspn(pin, "\n")] = '\0';
+        bool inputValid = true;
+        if (strlen(pin) != 4)
+        {
+            inputValid = false;
+        }
+        for (int i = 0; i < strlen(pin); i++)
+        {
+            if (!isdigit(pin[i]))
+            {
+                inputValid = false;
+                break;
+            }
+        }
+        if (inputValid != true)
+        {
+            printf("Invalid! PIN must contain only 4-digit numbers.\n\n");
+            continue;
+        }
+        break;
+    }
 }
 /*
 // checks if a random generated account number is available or not
@@ -152,7 +181,7 @@ void createAcc()
     enterName(acc.name, sizeof(acc.name));
     enterID(acc.id, sizeof(acc.id));
     enterAccType(acc.accType, sizeof(acc.accType));
-    enterPIN(acc.pin);
+    enterPIN(acc.pin, sizeof(acc.pin));
     createAccNo(acc.accNo);
     acc.bal = 0;
 }
