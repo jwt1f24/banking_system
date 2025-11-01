@@ -10,9 +10,9 @@
 typedef struct
 {
     char name[55];
-    char id[9];
-    char accType[8];
-    char pin[5];
+    char id[10];
+    char accType[9];
+    char pin[6];
     char accNo[10];
     double bal;
 } bankAccount;
@@ -99,17 +99,15 @@ void enterAccType(char *accType, size_t size)
                 ;
         }
         accType[strcspn(accType, "\n")] = '\0';
-        bool inputValid = true;
-        if (strcmp(accType, "Savings") != 0 || strcmp(accType, "Current") != 0)
+        if (strcmp(accType, "Savings") == 0 || strcmp(accType, "Current") == 0)
         {
-            inputValid = false;
+            break;
         }
-        if (inputValid != true)
+        else
         {
-            printf("Invalid! Enter either 'Savings' or 'Current'.\n");
+            printf("Invalid! Enter either 'Savings' or 'Current'.\n\n");
             continue;
         }
-        break;
     }
 }
 void enterPIN(char *pin)
