@@ -17,14 +17,20 @@ typedef struct
     double bal;
 } bankAccount;
 
-// takes in user input for creating a bank account
-void enterName(char *name)
+// takes in user input for storing info inside a new bank account
+void enterName(char *name, size_t size)
 {
     while (true)
     {
         printf("Enter your name: ");
-        fgets(name, sizeof(name), stdin);
-        name[strcspn(name, "\n")] = '\0';
+        fgets(name, size, stdin); // scan the user input
+        if (strchr(name, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF) // remove extra input to prevent it from carrying over to the next input iteration
+                ;
+        }
+        name[strcspn(name, "\n")] = '\0'; // remove space between each input character
         bool inputValid = true;
         if (name == NULL || strlen(name) == 0) // invalid if name is empty
         {
@@ -32,7 +38,7 @@ void enterName(char *name)
         }
         for (int i = 0; i < strlen(name); i++)
         {
-            if (!isalpha(name[i])) // invalid if name has non-letters
+            if (!isalpha(name[i]) && name[i] != ' ') // invalid if name has non-letters
             {
                 inputValid = false;
                 break;
@@ -40,21 +46,24 @@ void enterName(char *name)
         }
         if (inputValid != true)
         {
-            printf("Invalid! Name must contain only letters.\n");
-            continue; // loop again since input is invalid
+            printf("Invalid! Name must contain only letters.\n\n");
+            continue; // reiterate while loop again since input is invalid
         }
-        else
-        {
-            break; // exit loop & move on to next function since input is valid
-        }
+        break; // exit while loop & move on to next function since input is valid
     }
 }
-void enterID(char *id)
+void enterID(char *id, size_t size)
 {
     while (true)
     {
-        printf("Enter your ID number: ");
-        fgets(id, sizeof(id), stdin);
+        printf("Enter your ID number (8 digits): ");
+        fgets(id, size, stdin);
+        if (strchr(id, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
         id[strcspn(id, "\n")] = '\0';
         bool inputValid = true;
         if (strlen(id) != 8)
@@ -69,40 +78,38 @@ void enterID(char *id)
                 break;
             }
         }
-        if (inputValid != true)
+        if (!inputValid)
         {
-            printf("Invalid! ID must contain 8 digits and no letters.\n");
+            printf("Invalid! ID must contain only 8-digit numbers.\n\n");
             continue;
         }
-        else
-        {
-            break;
-        }
+        break;
     }
 }
-void enterAccType(char *accType)
+void enterAccType(char *accType, size_t size)
 {
     while (true)
     {
         printf("Choose account type (Savings / Current): ");
-        fgets(accType, sizeof(accType), stdin);
+        fgets(accType, size, stdin);
+        if (strchr(accType, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
         accType[strcspn(accType, "\n")] = '\0';
         bool inputValid = true;
-        if (strcmp(accType, "Savings") == 0)
+        if (strcmp(accType, "Savings") != 0 || strcmp(accType, "Current") != 0)
         {
-            printf("Account type: Savings\n");
-            break;
+            inputValid = false;
         }
-        else if (strcmp(accType, "Current") == 0)
-        {
-            printf("Account type: Current\n");
-            break;
-        }
-        else
+        if (inputValid != true)
         {
             printf("Invalid! Enter either 'Savings' or 'Current'.\n");
             continue;
         }
+        break;
     }
 }
 void enterPIN(char *pin)
@@ -144,9 +151,9 @@ void createAcc()
 {
     printf("\n========== CREATE ACCOUNT ==========\n");
     bankAccount acc;
-    enterName(acc.name);
-    enterID(acc.id);
-    enterAccType(acc.accType);
+    enterName(acc.name, sizeof(acc.name));
+    enterID(acc.id, sizeof(acc.id));
+    enterAccType(acc.accType, sizeof(acc.accType));
     enterPIN(acc.pin);
     createAccNo(acc.accNo);
     acc.bal = 0;
