@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
@@ -13,7 +14,7 @@ typedef struct
     char id[10];
     char accType[9];
     char pin[6];
-    char accNo[10];
+    long long accNo; // used long long because int maybe too small to store 9-digit numbers
     double bal;
 } bankAccount;
 
@@ -145,8 +146,8 @@ void enterPIN(char *pin, size_t size)
     }
 }
 /*
-// checks if a random generated account number is available or not
-int uniqueAccNo(char *accNo)
+// checks if a random generated account number is taken or not
+int checkIfAccNoUnique(char *accNo)
 {
     FILE *file = fopen("database/index.txt", "r");
     if (file == NULL)
@@ -165,12 +166,12 @@ int uniqueAccNo(char *accNo)
     return 1;
 }
 */
-void createAccNo(char *accNo)
-{ /*
-     while (!uniqueAccNo(accNo))
-     {
-         sprintf(accNo, "%07d", rand() % 9000000 + 1000000);
-     }*/
+void createAccNo(long long *accNo)
+{
+    long long min = 1000000LL;                            // smallest 7-digit number
+    long long max = 999999999LL;                          // biggest 9-digit number
+    *accNo = min + ((long long)rand() % (max - min + 1)); // formula to generate random number btwn 7-9 digits
+    printf("Account Number: %lld\n", *accNo);
 }
 
 // function of operations to create bank account
@@ -178,12 +179,14 @@ void createAcc()
 {
     printf("\n========== CREATE ACCOUNT ==========\n");
     bankAccount acc;
+
     enterName(acc.name, sizeof(acc.name));
     enterID(acc.id, sizeof(acc.id));
     enterAccType(acc.accType, sizeof(acc.accType));
     enterPIN(acc.pin, sizeof(acc.pin));
-    createAccNo(acc.accNo);
     acc.bal = 0;
+
+    createAccNo(&acc.accNo);
 }
 
 // functions of operation to delete bank account
@@ -259,8 +262,7 @@ void menu()
         else
         {
             printf("\nInvalid! Enter a number or a lowercase word specified in the brackets.\n");
-            menu();
-            return;
+            continue;
         }
     }
 }
@@ -268,14 +270,13 @@ void menu()
 // starts up the program by calling menu()
 int main()
 {
+    srand(time(NULL));
     time_t currentTime = time(NULL);
     struct tm *localTime = localtime(&currentTime);
-    localTime->tm_hour += 8;
+    localTime->tm_hour += 8; // Malaysia local time
     mktime(localTime);
     char time[80];
     strftime(time, sizeof(time), "%Y-%m-%d %H:%M:%S", localTime);
-
-    double bal = 0;
 
     printf("========== SESSION INFO ==========\n");
     printf("Time: %s\n", time);
