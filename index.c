@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
+#include <sys/stat.h>
 
 // setup structure that contains data of a bank account
 typedef struct
@@ -14,7 +15,7 @@ typedef struct
     char id[10];
     char accType[9];
     char pin[6];
-    long long accNo; // used long long because int maybe too small to store 9-digit numbers
+    long long accNo; // used long long cause it can store large numbers while having less risk of bugs
     double bal;
 } bankAccount;
 
@@ -147,7 +148,7 @@ void enterPIN(char *pin, size_t size)
 }
 
 // generate a random account number btwn 7-9 digits
-void createAccNo(long long *accNo)
+long long createAccNo(long long *accNo)
 {
     long long min = 1000000LL;                            // smallest 7-digit number
     long long max = 999999999LL;                          // biggest 9-digit number
@@ -155,26 +156,20 @@ void createAccNo(long long *accNo)
     printf("Account Number: %lld\n", *accNo);
 }
 
-// checks index file in database directory to ensure generated account number is unique
-int checkIfAccNoUnique(long long *accNo)
+// checks if a file with the same number in database directory exists or not
+void checkIfAccNoUnique(struct bankAccount *acc)
 {
-    FILE *file = fopen("database/index.txt", "r");
-    if (file == NULL)
+    char file[100];
+    while (true)
     {
-        return 1; // file does NOT exist, account number is unique
-    }
-
-    long long existingNo;
-    while (fscanf(file, "%lld", &existingNo) != EOF)
-    {
-        if (existingNo == *accNo) // account number is NOT unique
+        bankAccount acc;
+        long long GeneratedAccountNumber = createAccNo(acc.accNo);
+        snprint(file, sizeof(file), "database/%lld,txt", GeneratedAccountNumber); // look for file with same name as generated number
+        if (stat(file, &acc) == 0)
         {
-            fclose(file);
-            return 0;
+            continue; // restart loop because account number already exists
         }
     }
-    fclose(file);
-    return 1; // account number is unique
 }
 
 // function of operations to create bank account
@@ -187,9 +182,8 @@ void createAcc()
     enterID(acc.id, sizeof(acc.id));
     enterAccType(acc.accType, sizeof(acc.accType));
     enterPIN(acc.pin, sizeof(acc.pin));
-    acc.bal = 0;
+    acc.bal = 0.00;
 
-    createAccNo(&acc.accNo);
     checkIfAccNoUnique(&acc.accNo);
 }
 
