@@ -146,6 +146,15 @@ void enterPIN(char *pin, size_t size)
     }
 }
 
+// generate a random account number btwn 7-9 digits
+void createAccNo(long long *accNo)
+{
+    long long min = 1000000LL;                            // smallest 7-digit number
+    long long max = 999999999LL;                          // biggest 9-digit number
+    *accNo = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
+    printf("Account Number: %lld\n", *accNo);
+}
+
 // checks index file in database directory to ensure generated account number is unique
 int checkIfAccNoUnique(long long *accNo)
 {
@@ -168,15 +177,6 @@ int checkIfAccNoUnique(long long *accNo)
     return 1; // account number is unique
 }
 
-// generate a random account number btwn 7-9 digits
-void createAccNo(long long *accNo)
-{
-    long long min = 1000000LL;                            // smallest 7-digit number
-    long long max = 999999999LL;                          // biggest 9-digit number
-    *accNo = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
-    printf("Account Number: %lld\n", *accNo);
-}
-
 // function of operations to create bank account
 void createAcc()
 {
@@ -189,8 +189,8 @@ void createAcc()
     enterPIN(acc.pin, sizeof(acc.pin));
     acc.bal = 0;
 
-    checkIfAccNoUnique(&acc.accNo);
     createAccNo(&acc.accNo);
+    checkIfAccNoUnique(&acc.accNo);
 }
 
 // functions of operation to delete bank account
