@@ -20,27 +20,27 @@ typedef struct
 } bankAccount;
 
 // takes in user input to store info inside a new bank account
-void enterName(char *name, size_t size)
+void enterName(bankAccount *acc, size_t size)
 {
     while (true)
     {
         printf("Enter your name: ");
-        fgets(name, size, stdin); // scan the user input
-        if (strchr(name, '\n') == NULL)
+        fgets(acc->name, size, stdin); // scan the user input
+        if (strchr(acc->name, '\n') == NULL)
         {
             int leftoverInput;
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF) // remove extra input to prevent it from carrying over to the next input iteration
                 ;
         }
-        name[strcspn(name, "\n")] = '\0'; // remove space between each input character
+        acc->name[strcspn(acc->name, "\n")] = '\0'; // remove space between each input character
         bool inputValid = true;
-        if (name == NULL || strlen(name) == 0) // invalid if name is empty
+        if (strlen(acc->name) == 0) // invalid if name is empty
         {
             inputValid = false;
         }
-        for (int i = 0; i < strlen(name); i++)
+        for (int i = 0; i < strlen(acc->name); i++)
         {
-            if (!isalpha(name[i]) && name[i] != ' ') // invalid if name has non-letters
+            if (!isalpha(acc->name[i]) && acc->name[i] != ' ') // invalid if name has non-letters
             {
                 inputValid = false;
                 break;
@@ -54,27 +54,27 @@ void enterName(char *name, size_t size)
         break; // exit while loop & move on to next function since input is valid
     }
 }
-void enterID(char *id, size_t size)
+void enterID(bankAccount *acc, size_t size)
 {
     while (true)
     {
         printf("Enter your ID number (8 digits): ");
-        fgets(id, size, stdin);
-        if (strchr(id, '\n') == NULL)
+        fgets(acc->id, size, stdin);
+        if (strchr(acc->id, '\n') == NULL)
         {
             int leftoverInput;
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
                 ;
         }
-        id[strcspn(id, "\n")] = '\0';
+        acc->id[strcspn(acc->id, "\n")] = '\0';
         bool inputValid = true;
-        if (strlen(id) != 8)
+        if (strlen(acc->id) != 8)
         {
             inputValid = false;
         }
-        for (int i = 0; i < strlen(id); i++)
+        for (int i = 0; i < strlen(acc->id); i++)
         {
-            if (!isdigit(id[i]))
+            if (!isdigit(acc->id[i]))
             {
                 inputValid = false;
                 break;
@@ -88,20 +88,20 @@ void enterID(char *id, size_t size)
         break;
     }
 }
-void enterAccType(char *accType, size_t size)
+void enterAccType(bankAccount *acc, size_t size)
 {
     while (true)
     {
         printf("Choose account type (Savings / Current): ");
-        fgets(accType, size, stdin);
-        if (strchr(accType, '\n') == NULL)
+        fgets(acc->accType, size, stdin);
+        if (strchr(acc->accType, '\n') == NULL)
         {
             int leftoverInput;
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
                 ;
         }
-        accType[strcspn(accType, "\n")] = '\0';
-        if (strcmp(accType, "Savings") == 0 || strcmp(accType, "Current") == 0)
+        acc->accType[strcspn(acc->accType, "\n")] = '\0';
+        if (strcmp(acc->accType, "Savings") == 0 || strcmp(acc->accType, "Current") == 0)
         {
             break;
         }
@@ -112,27 +112,27 @@ void enterAccType(char *accType, size_t size)
         }
     }
 }
-void enterPIN(char *pin, size_t size)
+void enterPIN(bankAccount *acc, size_t size)
 {
     while (true)
     {
         printf("Enter your 4-digit PIN: ");
-        fgets(pin, size, stdin);
-        if (strchr(pin, '\n') == NULL)
+        fgets(acc->pin, size, stdin);
+        if (strchr(acc->pin, '\n') == NULL)
         {
             int leftoverInput;
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
                 ;
         }
-        pin[strcspn(pin, "\n")] = '\0';
+        acc->pin[strcspn(acc->pin, "\n")] = '\0';
         bool inputValid = true;
-        if (strlen(pin) != 4)
+        if (strlen(acc->pin) != 4)
         {
             inputValid = false;
         }
-        for (int i = 0; i < strlen(pin); i++)
+        for (int i = 0; i < strlen(acc->pin); i++)
         {
-            if (!isdigit(pin[i]))
+            if (!isdigit(acc->pin[i]))
             {
                 inputValid = false;
                 break;
@@ -157,13 +157,12 @@ long long createAccNo(long long *accNo)
 }
 
 // checks if a file with the same number in database directory exists or not
-void checkIfAccNoUnique(struct bankAccount *acc)
+void checkIfAccNoUnique(bankAccount *acc)
 {
     char file[100];
     while (true)
     {
-        bankAccount acc;
-        long long GeneratedAccountNumber = createAccNo(acc.accNo);
+        long long GeneratedAccountNumber = createAccNo(acc->accNo);
         snprint(file, sizeof(file), "database/%lld,txt", GeneratedAccountNumber); // look for file with same name as generated number
         if (stat(file, &acc) == 0)
         {
@@ -178,13 +177,13 @@ void createAcc()
     printf("\n========== CREATE ACCOUNT ==========\n");
     bankAccount acc;
 
-    enterName(acc.name, sizeof(acc.name));
-    enterID(acc.id, sizeof(acc.id));
-    enterAccType(acc.accType, sizeof(acc.accType));
-    enterPIN(acc.pin, sizeof(acc.pin));
+    enterName(&acc, sizeof(acc.name));
+    enterID(&acc, sizeof(acc.id));
+    enterAccType(&acc, sizeof(acc.accType));
+    enterPIN(&acc, sizeof(acc.pin));
     acc.bal = 0.00;
 
-    checkIfAccNoUnique(&acc.accNo);
+    checkIfAccNoUnique(&acc);
 }
 
 // functions of operation to delete bank account
