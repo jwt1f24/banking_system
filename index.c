@@ -7,6 +7,31 @@
 #include <math.h>
 #include <time.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
+#ifdef _WIN32
+#include <direct.h>
+#define MKDIR(path) _mkdir(path)
+#else
+#define MKDIR(path) mkdir(path, 0755)
+#endif
+
+// create a 'database' directory if it has not existed yet
+void databaseDirectory(void)
+{
+    if (MKDIR("database") == -1)
+    {
+        if (errno == EEXIST) // if database exists then just continue
+        {
+            return;
+        }
+        else
+        {
+            perror("mkdir"); // create folder if it doesn't exist yet
+        }
+    }
+}
 
 // setup structure that contains data of a bank account
 typedef struct
@@ -148,33 +173,37 @@ void enterPIN(bankAccount *acc, size_t size)
 }
 
 // generate a random account number btwn 7-9 digits
-long long createAccNo(long long *accNo)
+long long createAccNo(bankAccount *acc)
 {
-    long long min = 1000000LL;                            // smallest 7-digit number
-    long long max = 999999999LL;                          // biggest 9-digit number
-    *accNo = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
-    printf("Account Number: %lld\n", *accNo);
+    long long min = 1000000LL;   // smallest 7-digit number
+    long long max = 999999999LL; // biggest 9-digit number
+    long long GeneratedNumber = acc->accNo;
+    GeneratedNumber = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
+    printf("Account Number: %lld\n", GeneratedNumber);
+    return GeneratedNumber;
 }
-
+/*
 // checks if a file with the same number in database directory exists or not
 void checkIfAccNoUnique(bankAccount *acc)
 {
     char file[100];
     while (true)
     {
-        long long GeneratedAccountNumber = createAccNo(acc->accNo);
-        snprint(file, sizeof(file), "database/%lld,txt", GeneratedAccountNumber); // look for file with same name as generated number
+        createAccNo(acc);
+        snprintf(file, sizeof(file), "database/%lld,txt", acc->accNo); // look for file with same name as generated number
+
         if (stat(file, &acc) == 0)
         {
-            continue; // restart loop because account number already exists
+            continue; // reloop & generate a new number because account number already exists
         }
     }
 }
+*/
 
 // function of operations to create bank account
 void createAcc()
 {
-    printf("\n========== CREATE ACCOUNT ==========\n");
+    printf("\n---------- CREATE ACCOUNT ----------\n");
     bankAccount acc;
 
     enterName(&acc, sizeof(acc.name));
@@ -183,7 +212,7 @@ void createAcc()
     enterPIN(&acc, sizeof(acc.pin));
     acc.bal = 0.00;
 
-    checkIfAccNoUnique(&acc);
+    // checkIfAccNoUnique(&acc);
 }
 
 // functions of operation to delete bank account
@@ -267,6 +296,8 @@ void menu()
 // starts up the program by calling menu()
 int main()
 {
+    databaseDirectory(); // check if 'database' folder exists or not
+
     srand(time(NULL));
     time_t currentTime = time(NULL);
     struct tm *localTime = localtime(&currentTime);
@@ -275,10 +306,10 @@ int main()
     char time[80];
     strftime(time, sizeof(time), "%Y-%m-%d %H:%M:%S", localTime);
 
-    printf("========== SESSION INFO ==========\n");
+    printf("---------- SESSION INFO ----------\n");
     printf("Time: %s\n", time);
     printf("No. of loaded accounts: \n");
     printf("\nWelcome to the Banking System App!\n");
-    menu();
+    menu(); // launch menu to start program
     return 0;
 }
