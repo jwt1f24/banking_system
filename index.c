@@ -28,7 +28,7 @@ void databaseDirectory(void)
         }
         else
         {
-            perror("mkdir"); // create folder if it doesn't exist yet
+            perror("mkdir"); // create folder otherwise
         }
     }
 }
@@ -182,7 +182,7 @@ long long createAccNo(bankAccount *acc)
     printf("Account Number: %lld\n", GeneratedNumber);
     return GeneratedNumber;
 }
-/*
+
 // checks if a file with the same number in database directory exists or not
 void checkIfAccNoUnique(bankAccount *acc)
 {
@@ -192,13 +192,18 @@ void checkIfAccNoUnique(bankAccount *acc)
         createAccNo(acc);
         snprintf(file, sizeof(file), "database/%lld,txt", acc->accNo); // look for file with same name as generated number
 
-        if (stat(file, &acc) == 0)
+        if (stat(file, &acc) == 0) // reloop & generate new number because account number already exists
         {
-            continue; // reloop & generate a new number because account number already exists
+            continue;
+        }
+        else // create a txt file in 'database' directory
+        {
+            FILE *file;
+            file = fopen("database/%lld.txt", "w");
+            fclose(file);
         }
     }
 }
-*/
 
 // function of operations to create bank account
 void createAcc()
@@ -212,7 +217,7 @@ void createAcc()
     enterPIN(&acc, sizeof(acc.pin));
     acc.bal = 0.00;
 
-    // checkIfAccNoUnique(&acc);
+    checkIfAccNoUnique(&acc);
 }
 
 // functions of operation to delete bank account
