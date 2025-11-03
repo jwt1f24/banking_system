@@ -173,12 +173,11 @@ void enterPIN(bankAccount *acc, size_t size)
 }
 
 // generate a random account number btwn 7-9 digits
-long long createAccNo(bankAccount *acc)
+long long createAccNo(void)
 {
-    long long min = 1000000LL;   // smallest 7-digit number
-    long long max = 999999999LL; // biggest 9-digit number
-    long long GeneratedNumber = acc->accNo;
-    GeneratedNumber = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
+    long long min = 1000000LL;                                               // smallest 7-digit number
+    long long max = 999999999LL;                                             // biggest 9-digit number
+    long long GeneratedNumber = min + ((long long)rand() % (max - min + 1)); // formula to generate random number
     printf("Account Number: %lld\n", GeneratedNumber);
     return GeneratedNumber;
 }
@@ -186,21 +185,24 @@ long long createAccNo(bankAccount *acc)
 // checks if a file with the same number in database directory exists or not
 void checkIfAccNoUnique(bankAccount *acc)
 {
-    char file[100];
+    char filePath[255];
+    struct stat address;
     while (true)
     {
-        createAccNo(acc);
-        snprintf(file, sizeof(file), "database/%lld,txt", acc->accNo); // look for file with same name as generated number
-
-        if (stat(file, &acc) == 0) // reloop & generate new number because account number already exists
+        long long GeneratedNumber = createAccNo();
+        GeneratedNumber = acc->accNo;
+        snprintf(filePath, sizeof(filePath), "database/%lld.txt", GeneratedNumber); // look for file with same name as generated number
+        if (stat(filePath, &address) == 0)                                          // reloop & generate new number because account number already exists
         {
             continue;
         }
         else // create a txt file in 'database' directory
         {
-            FILE *file;
-            file = fopen("database/%lld.txt", "w");
-            fclose(file);
+            FILE *newFile;
+            newFile = fopen(filePath, "w");
+            fclose(newFile);
+            printf("\n---------- Account created successfully! ----------\n");
+            return;
         }
     }
 }
