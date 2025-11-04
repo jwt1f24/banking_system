@@ -190,7 +190,7 @@ void checkIfAccNoUnique(bankAccount *acc)
     while (true)
     {
         long long GeneratedNumber = createAccNo();
-        acc->accNo = acc->accNo + GeneratedNumber;
+        acc->accNo = GeneratedNumber;
         snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc->accNo); // look for file with same name as generated number
         if (stat(filePath, &address) == 0)                                     // reloop & generate new number because account number already exists
         {
@@ -200,6 +200,13 @@ void checkIfAccNoUnique(bankAccount *acc)
         else // create a txt file in 'database' directory
         {
             FILE *newFile = fopen(filePath, "w");
+            fclose(newFile);
+            newFile = fopen(filePath, "a"); // put account info into the txt file
+            fprintf(newFile, "Name: %s\n", acc->name);
+            fprintf(newFile, "ID: %s\n", acc->id);
+            fprintf(newFile, "Account Type: %s\n", acc->accType);
+            fprintf(newFile, "PIN: %s\n", acc->pin);
+            fprintf(newFile, "\nBalance: RM%.2f\n", acc->bal);
             fclose(newFile);
             printf("\n---------- Account created successfully! ----------\n");
             return;
