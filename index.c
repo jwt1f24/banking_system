@@ -45,12 +45,12 @@ typedef struct
 } bankAccount;
 
 // takes in user input to store info inside a new bank account
-void enterName(bankAccount *acc, size_t size)
+void enterName(bankAccount *acc)
 {
     while (true)
     {
         printf("Enter your name: ");
-        fgets(acc->name, size, stdin); // scan the user input
+        fgets(acc->name, sizeof(acc->name), stdin); // scan the user input
         if (strchr(acc->name, '\n') == NULL)
         {
             int leftoverInput;
@@ -79,12 +79,12 @@ void enterName(bankAccount *acc, size_t size)
         break; // exit while loop & move on to next function since input is valid
     }
 }
-void enterID(bankAccount *acc, size_t size)
+void enterID(bankAccount *acc)
 {
     while (true)
     {
         printf("Enter your ID number (8 digits): ");
-        fgets(acc->id, size, stdin);
+        fgets(acc->id, sizeof(acc->id), stdin);
         if (strchr(acc->id, '\n') == NULL)
         {
             int leftoverInput;
@@ -113,12 +113,12 @@ void enterID(bankAccount *acc, size_t size)
         break;
     }
 }
-void enterAccType(bankAccount *acc, size_t size)
+void enterAccType(bankAccount *acc)
 {
     while (true)
     {
         printf("Choose account type (Savings / Current): ");
-        fgets(acc->accType, size, stdin);
+        fgets(acc->accType, sizeof(acc->accType), stdin);
         if (strchr(acc->accType, '\n') == NULL)
         {
             int leftoverInput;
@@ -137,12 +137,12 @@ void enterAccType(bankAccount *acc, size_t size)
         }
     }
 }
-void enterPIN(bankAccount *acc, size_t size)
+void enterPIN(bankAccount *acc)
 {
     while (true)
     {
         printf("Enter your 4-digit PIN: ");
-        fgets(acc->pin, size, stdin);
+        fgets(acc->pin, sizeof(acc->pin), stdin);
         if (strchr(acc->pin, '\n') == NULL)
         {
             int leftoverInput;
@@ -213,10 +213,10 @@ void createAcc()
     printf("\n---------- CREATE ACCOUNT ----------\n");
     bankAccount acc;
 
-    enterName(&acc, sizeof(acc.name));
-    enterID(&acc, sizeof(acc.id));
-    enterAccType(&acc, sizeof(acc.accType));
-    enterPIN(&acc, sizeof(acc.pin));
+    enterName(&acc);
+    enterID(&acc);
+    enterAccType(&acc);
+    enterPIN(&acc);
     acc.bal = 0.00;
 
     checkIfAccNoUnique(&acc);
