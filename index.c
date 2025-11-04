@@ -173,7 +173,7 @@ void enterPIN(bankAccount *acc)
 }
 
 // generate a random account number btwn 7-9 digits
-long long createAccNo(void)
+long long createAccNo()
 {
     long long min = 1000000LL;                                               // smallest 7-digit number
     long long max = 999999999LL;                                             // biggest 9-digit number
@@ -190,16 +190,16 @@ void checkIfAccNoUnique(bankAccount *acc)
     while (true)
     {
         long long GeneratedNumber = createAccNo();
-        GeneratedNumber = acc->accNo;
+        GeneratedNumber = GeneratedNumber + acc->accNo;
         snprintf(filePath, sizeof(filePath), "database/%lld.txt", GeneratedNumber); // look for file with same name as generated number
         if (stat(filePath, &address) == 0)                                          // reloop & generate new number because account number already exists
         {
+            printf("Account number already exists. Generating new account number...\n");
             continue;
         }
         else // create a txt file in 'database' directory
         {
-            FILE *newFile;
-            newFile = fopen(filePath, "w");
+            FILE *newFile = fopen(filePath, "w");
             fclose(newFile);
             printf("\n---------- Account created successfully! ----------\n");
             return;
