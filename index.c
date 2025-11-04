@@ -190,9 +190,9 @@ void checkIfAccNoUnique(bankAccount *acc)
     while (true)
     {
         long long GeneratedNumber = createAccNo();
-        GeneratedNumber = GeneratedNumber + acc->accNo;
-        snprintf(filePath, sizeof(filePath), "database/%lld.txt", GeneratedNumber); // look for file with same name as generated number
-        if (stat(filePath, &address) == 0)                                          // reloop & generate new number because account number already exists
+        acc->accNo = acc->accNo + GeneratedNumber;
+        snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc->accNo); // look for file with same name as generated number
+        if (stat(filePath, &address) == 0)                                     // reloop & generate new number because account number already exists
         {
             printf("Account number already exists. Generating new account number...\n");
             continue;
