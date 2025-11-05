@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -16,6 +17,8 @@
 #else
 #define MKDIR(path) mkdir(path, 0755)
 #endif
+
+int loadedAccounts = 0;
 
 // create a 'database' directory if it has not existed yet
 void databaseDirectory(void)
@@ -201,6 +204,7 @@ void checkIfAccNoUnique(bankAccount *acc)
         {
             FILE *newFile = fopen(filePath, "w");
             fclose(newFile);
+
             newFile = fopen(filePath, "a"); // put account info into the txt file
             fprintf(newFile, "Name: %s\n", acc->name);
             fprintf(newFile, "ID: %s\n", acc->id);
@@ -208,8 +212,9 @@ void checkIfAccNoUnique(bankAccount *acc)
             fprintf(newFile, "PIN: %s\n", acc->pin);
             fprintf(newFile, "\nBalance: RM%.2f\n", acc->bal);
             fclose(newFile);
+            loadedAccounts++;
             printf("\n---------- Account created successfully! ----------\n");
-            return;
+            break;
         }
     }
 }
@@ -232,7 +237,28 @@ void createAcc()
 // functions of operation to delete bank account
 void deleteAcc()
 {
-    printf("DELETE");
+    printf("\n---------- DELETE ACCOUNT ----------\n");
+    int AccountIndex = 0;
+    DIR *directory = opendir("database");
+    struct dirent *dir;
+    while ((dir = readdir(directory)) != NULL)
+    {
+        size_t len = strlen(dir->d_name);
+        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
+        {
+            char fileName[100];
+            strncpy(fileName, dir->d_name, len - 4);
+            fileName[len - 4] = '\0';
+
+            AccountIndex++;
+            printf("%d) %s\n", AccountIndex, fileName);
+        }
+    }
+    closedir(directory);
+
+    int input;
+    printf("Enter index number (1-%d): ", loadedAccounts);
+    scanf("%d\n", input);
 }
 
 // deposit money into bank account
@@ -311,18 +337,26 @@ void menu()
 int main()
 {
     databaseDirectory(); // check if 'database' folder exists or not
+    DIR *directory = opendir("database");
+    struct dirent *dir;
+    while ((dir = readdir(directory)) != NULL)
+    {
+        size_t len = strlen(dir->d_name);
+        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
+        {
+            loadedAccounts++;
+        }
+    }
+    closedir(directory);
 
-    srand(time(NULL));
     time_t currentTime = time(NULL);
     struct tm *localTime = localtime(&currentTime);
-    localTime->tm_hour += 8; // Malaysia local time
-    mktime(localTime);
-    char time[80];
-    strftime(time, sizeof(time), "%Y-%m-%d %H:%M:%S", localTime);
+    char time[100];
+    strftime(time, sizeof(time), "%d-%m-%Y %H:%M:%S", localTime);
 
     printf("---------- SESSION INFO ----------\n");
     printf("Time: %s\n", time);
-    printf("No. of loaded accounts: \n");
+    printf("No. of loaded accounts: %d\n", loadedAccounts);
     printf("\nWelcome to the Banking System App!\n");
     menu(); // launch menu to start program
     return 0;
