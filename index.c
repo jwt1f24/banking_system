@@ -241,12 +241,17 @@ void deleteAcc()
     int AccountIndex = 0;
     DIR *directory = opendir("database");
     struct dirent *dir;
+    char fileName[100];
+    if (loadedAccounts == 0)
+    {
+        printf("There are no existing bank accounts!");
+        return;
+    }
     while ((dir = readdir(directory)) != NULL)
     {
         size_t len = strlen(dir->d_name);
         if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
         {
-            char fileName[100];
             strncpy(fileName, dir->d_name, len - 4);
             fileName[len - 4] = '\0';
 
@@ -256,9 +261,34 @@ void deleteAcc()
     }
     closedir(directory);
 
-    int input;
-    printf("Enter index number (1-%d): ", loadedAccounts);
-    scanf("%d\n", input);
+    while (true)
+    {
+        int number;
+        char input[10];
+        if (loadedAccounts == 1)
+        {
+            printf("Enter index number (1): ");
+        }
+        else
+        {
+            printf("Enter index number (1-%d): ", loadedAccounts);
+        }
+        fgets(input, sizeof(input), stdin);
+        if (sscanf(input, "%d", &number) != 1)
+        {
+            printf("Invalid! Enter a valid index number.\n\n");
+            continue;
+        }
+        if (number > 0 && number <= loadedAccounts)
+        {
+            break;
+        }
+        else
+        {
+            printf("Invalid! Enter a valid index number.\n\n");
+            continue;
+        }
+    }
 }
 
 // deposit money into bank account
@@ -361,3 +391,5 @@ int main()
     menu(); // launch menu to start program
     return 0;
 }
+// cd OneDrive/Documents/zbanksys
+// .\index.exe
