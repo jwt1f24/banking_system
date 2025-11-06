@@ -18,6 +18,7 @@
 #define MKDIR(path) mkdir(path, 0755)
 #endif
 
+char listOfAccounts[999][10];
 int loadedAccounts = 0;
 
 // create a 'database' directory if it has not existed yet
@@ -234,10 +235,9 @@ void createAcc()
     checkIfAccNoUnique(&acc);
 }
 
-// functions of operation to delete bank account
-void deleteAcc()
+void loadAccounts()
 {
-    printf("\n---------- DELETE ACCOUNT ----------\n");
+    bankAccount acc;
     int AccountIndex = 0;
     DIR *directory = opendir("database");
     struct dirent *dir;
@@ -260,7 +260,12 @@ void deleteAcc()
         }
     }
     closedir(directory);
+}
 
+void confirmIDNumber()
+{
+    bankAccount acc;
+    int index;
     while (true)
     {
         int number;
@@ -274,12 +279,7 @@ void deleteAcc()
             printf("Enter index number (1-%d): ", loadedAccounts);
         }
         fgets(input, sizeof(input), stdin);
-        if (sscanf(input, "%d", &number) != 1)
-        {
-            printf("Invalid! Enter a valid index number.\n\n");
-            continue;
-        }
-        if (number > 0 && number <= loadedAccounts)
+        if (sscanf(input, "%d", &number) == 1 && number > 0 && number <= loadedAccounts)
         {
             break;
         }
@@ -289,6 +289,39 @@ void deleteAcc()
             continue;
         }
     }
+    char accNo[10];
+    char fileSelected[10];
+    strcpy(accNo, listOfAccounts[index - 1]);
+    sprintf(fileSelected, "database/%s.bin", accNo);
+
+    FILE *openFile = fopen(fileSelected, "rb");
+    fread(&acc, sizeof(bankAccount), 1, openFile);
+    fclose(openFile);
+
+    while (true)
+    {
+        char input[10];
+        printf("Does the ID number end with ****%s? (y/n): ", fileSelected);
+        fgets(input, sizeof(input), stdin);
+        input[strcspn(input, "\n")] = '\0';
+        if (strcmp(input, "y") == 0)
+        {
+            printf("hello");
+            break;
+        }
+    }
+}
+
+void deleteFile()
+{
+}
+
+// functions of operation to delete bank account
+void deleteAcc()
+{
+    printf("\n---------- DELETE ACCOUNT ----------\n");
+    loadAccounts();
+    confirmIDNumber();
 }
 
 // deposit money into bank account
