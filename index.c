@@ -334,14 +334,17 @@ void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 
     // free current bank account memory from array to make space for next/new account
     free(acc_arr[index - 1]);
-    acc_arr[index - 1] = NULL;
+    for (int i = index - 1; i < *acc_count - 1; i++)
+    {
+        acc_arr[i] = acc_arr[i + 1];
+    }
     loadedAccounts--;
-    acc_arr[*acc_count] = acc;
+    acc_arr[*acc_count - 1] = NULL;
     (*acc_count)--;
     printf("\n---------- Account deleted successfully! ----------\n");
 }
 
-// functions of operation to delete bank account
+// function of operations to delete bank account
 void deleteAcc(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
@@ -358,10 +361,69 @@ void deleteAcc(bankAccount *acc_arr[], int *acc_count)
     }
 }
 
-// deposit money into bank account
-void deposit()
+// add money into bank account
+void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
-    printf("DEPOSIT");
+    int index = confirmDetails(acc_arr, acc_count);
+
+    while (true)
+    {
+        double amount;
+        char input[10];
+        printf("Enter amount to deposit: RM");
+        fgets(input, sizeof(input), stdin);
+        if (strchr(input, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
+        input[strcspn(input, "\n")] = '\0';
+        if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= 50000)
+        {
+            acc_arr[index - 1]->bal += amount; // add deposit amount to current balance
+
+            // update balance in txt file
+            char filePath[25];
+            snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc_arr[index - 1]->accNo);
+            FILE *file = fopen(filePath, "w");
+            fclose(file);
+
+            file = fopen(filePath, "a");
+            fprintf(file, "Name: %s\n", acc_arr[index - 1]->name);
+            fprintf(file, "ID: %s\n", acc_arr[index - 1]->id);
+            fprintf(file, "Account Type: %s\n", acc_arr[index - 1]->accType);
+            fprintf(file, "PIN: %s\n", acc_arr[index - 1]->pin);
+            fprintf(file, "\nBalance: RM%.2f\n", acc_arr[index - 1]->bal);
+            fclose(file);
+
+            printf("\n---------- Deposit successful! ----------\n");
+            printf("Your new balance is: RM%.2f\n", acc_arr[index - 1]->bal);
+            break;
+        }
+        else
+        {
+            printf("Invalid! Amount must be more than RM0 and less than or equal to RM50,000.\n\n");
+            continue;
+        }
+    }
+}
+
+// function of operations to deposit money into a bank account
+void deposit(bankAccount *acc_arr[], int *acc_count)
+{
+    bankAccount *acc = malloc(sizeof(bankAccount));
+    printf("\n---------- DEPOSIT ----------\n");
+    if (loadedAccounts == 0)
+    {
+        printf("There are no existing bank accounts!");
+        return;
+    }
+    else
+    {
+        loadAccounts(acc_arr, acc_count);
+        depositBalance(acc_arr, acc, acc_count);
+    }
 }
 
 // withdraw money from bank account
@@ -405,7 +467,7 @@ void menu(bankAccount *acc_arr[], int *acc_count)
         }
         else if (strcmp(option, "3") == 0 || strcmp(option, "deposit") == 0)
         {
-            deposit();
+            deposit(acc_arr, acc_count);
             return;
         }
         else if (strcmp(option, "4") == 0 || strcmp(option, "withdraw") == 0)
@@ -436,9 +498,9 @@ int main()
 {
     int acc_count = 0;
     int acc_max = 999;
-    bankAccount **acc_arr = malloc(acc_max * sizeof(bankAccount *));
+    bankAccount **acc_arr = malloc(acc_max * sizeof(bankAccount *)); // array to store bank accounts and their data
 
-    databaseDirectory(); // check if 'database' folder exists or not
+    databaseDirectory(); // check if 'database' folder exists, create one if not
     DIR *directory = opendir("database");
     struct dirent *dir;
     while ((dir = readdir(directory)) != NULL)
@@ -446,7 +508,7 @@ int main()
         size_t len = strlen(dir->d_name);
         if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
         {
-            char filePath[50];
+            char filePath[25];
             snprintf(filePath, sizeof(filePath), "database/%s", dir->d_name);
             FILE *file = fopen(filePath, "r");
             if (file != NULL)
