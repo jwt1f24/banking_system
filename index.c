@@ -18,6 +18,8 @@
 #define MKDIR(path) mkdir(path, 0755)
 #endif
 
+int loadedAccounts = 0;
+
 // create a 'database' directory if it has not existed yet
 void databaseDirectory(void)
 {
@@ -190,8 +192,7 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
     struct stat address;
     while (true)
     {
-        long long GeneratedNumber = createAccNo();
-        acc->accNo = GeneratedNumber;
+        acc->accNo = createAccNo();
         snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc->accNo); // look for file with same name as generated number
         if (stat(filePath, &address) == 0)                                     // reloop & generate new number because account number already exists
         {
@@ -211,11 +212,12 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
             fprintf(newFile, "PIN: %s\n", acc->pin);
             fprintf(newFile, "\nBalance: RM%.2f\n", acc->bal);
             fclose(newFile);
-            printf("\n---------- Account created successfully! ----------\n");
+            loadedAccounts++;
 
-            // store account number into array
+            // store account info into array
             acc_arr[*acc_count] = acc;
-            *acc_count++;
+            (*acc_count)++;
+            printf("\n---------- Account created successfully! ----------\n");
             break;
         }
     }
@@ -225,47 +227,27 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
 void createAcc(bankAccount *acc_arr[], int *acc_count)
 {
     printf("\n---------- CREATE ACCOUNT ----------\n");
-    bankAccount acc;
+    bankAccount *acc = malloc(sizeof(bankAccount));
 
-    enterName(&acc);
-    enterID(&acc);
-    enterAccType(&acc);
-    enterPIN(&acc);
-    acc.bal = 0.00;
+    enterName(acc);
+    enterID(acc);
+    enterAccType(acc);
+    enterPIN(acc);
+    acc->bal = 0.00;
 
-    checkIfAccNoUnique(acc_arr, &acc, acc_count);
+    checkIfAccNoUnique(acc_arr, acc, acc_count);
 }
 
 void loadAccounts(bankAccount *acc_arr[], int *acc_count)
 {
-    DIR *directory = opendir("database");
-    struct dirent *dir;
-    char fileName[50];
-    if (acc_count == 0)
+    for (int i = 0; i < *acc_count; i++)
     {
-        printf("There are no existing bank accounts!");
-        return;
+        printf("%d) %lld\n", i + 1, acc_arr[i]->accNo);
     }
-    while ((dir = readdir(directory)) != NULL)
-    {
-        size_t len = strlen(dir->d_name);
-        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
-        {
-            strncpy(fileName, dir->d_name, len - 4);
-            fileName[len - 4] = '\0';
-            for (int i = 0; i < *acc_count; i++)
-            {
-                printf("%d) %s\n", i, acc_arr[i]);
-            }
-        }
-    }
-    closedir(directory);
 }
 
-void confirmIDNumber(bankAccount *acc_arr[], int *acc_count)
+void confirmDetails(bankAccount *acc_arr[], int *acc_count)
 {
-    bankAccount acc;
-    int index;
     while (true)
     {
         int number;
@@ -273,9 +255,26 @@ void confirmIDNumber(bankAccount *acc_arr[], int *acc_count)
 
         printf("Enter index number: ");
         fgets(input, sizeof(input), stdin);
+        if (strchr(input, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
         if (sscanf(input, "%d", &number) == 1 && number > 0 && number <= *acc_count)
         {
-            break;
+            while (true)
+            {
+                char input2[10];
+                printf("Does the ID number end with ****%s? (y/n): ", acc_arr[input - 1]->id);
+                fgets(input, sizeof(input), stdin);
+                input[strcspn(input, "\n")] = '\0';
+                if (strcmp(input, "y") == 0)
+                {
+                    printf("hello");
+                    break;
+                }
+            }
         }
         else
         {
@@ -283,28 +282,6 @@ void confirmIDNumber(bankAccount *acc_arr[], int *acc_count)
             continue;
         }
     }
-    /*
-        char accNo[10];
-        char fileSelected[10];
-        strcpy(accNo, acc_arr[index - 1]);
-        sprintf(fileSelected, "database/%s.bin", accNo);
-
-        FILE *openFile = fopen(fileSelected, "rb");
-        fread(&acc, sizeof(bankAccount), 1, openFile);
-        fclose(openFile);
-
-        while (true)
-        {
-            char input[10];
-            printf("Does the ID number end with ****%s? (y/n): ", fileSelected);
-            fgets(input, sizeof(input), stdin);
-            input[strcspn(input, "\n")] = '\0';
-            if (strcmp(input, "y") == 0)
-            {
-                printf("hello");
-                break;
-            }
-        }*/
 }
 
 void deleteFile()
@@ -315,8 +292,16 @@ void deleteFile()
 void deleteAcc(bankAccount *acc_arr[], int *acc_count)
 {
     printf("\n---------- DELETE ACCOUNT ----------\n");
-    loadAccounts(acc_arr, acc_count);
-    confirmIDNumber(acc_arr, acc_count);
+    if (loadedAccounts == 0)
+    {
+        printf("There are no existing bank accounts!");
+        return;
+    }
+    else
+    {
+        loadAccounts(acc_arr, acc_count);
+        confirmDetails(acc_arr, acc_count);
+    }
 }
 
 // deposit money into bank account
@@ -340,29 +325,6 @@ void remittance()
 // main menu that uses user input to execute operations, exit option closes the app
 void menu(bankAccount *acc_arr[], int *acc_count)
 {
-    databaseDirectory(); // check if 'database' folder exists or not
-    DIR *directory = opendir("database");
-    struct dirent *dir;
-    while ((dir = readdir(directory)) != NULL)
-    {
-        size_t len = strlen(dir->d_name);
-        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
-        {
-            acc_count++;
-        }
-    }
-    closedir(directory);
-
-    time_t currentTime = time(NULL);
-    struct tm *localTime = localtime(&currentTime);
-    char time[100];
-    strftime(time, sizeof(time), "%d-%m-%Y %H:%M:%S", localTime);
-
-    printf("---------- SESSION INFO ----------\n");
-    printf("Time: %s\n", time);
-    printf("No. of loaded accounts: %d\n", acc_count);
-    printf("\nWelcome to the Banking System App!\n");
-
     char option[999];
     while (true)
     {
@@ -417,10 +379,54 @@ void menu(bankAccount *acc_arr[], int *acc_count)
 // starts up the program by calling menu()
 int main()
 {
-    int *acc_count = 0;
-    bankAccount *acc_arr[999];
+    int acc_count = 0;
+    int acc_max = 999;
+    bankAccount **acc_arr = malloc(acc_max * sizeof(bankAccount *));
 
-    menu(acc_arr, acc_count); // launch menu to start program
+    databaseDirectory(); // check if 'database' folder exists or not
+    DIR *directory = opendir("database");
+    struct dirent *dir;
+    while ((dir = readdir(directory)) != NULL)
+    {
+        size_t len = strlen(dir->d_name);
+        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
+        {
+            char filePath[50];
+            snprintf(filePath, sizeof(filePath), "database/%s", dir->d_name);
+            FILE *file = fopen(filePath, "r");
+            if (file != NULL)
+            {
+                bankAccount *acc = malloc(sizeof(bankAccount));
+                fscanf(file, "Name: %[^\n]\n", acc->name);
+                fscanf(file, "ID: %[^\n]\n", acc->id);
+                fscanf(file, "Account Type: %[^\n]\n", acc->accType);
+                fscanf(file, "PIN: %[^\n]\n", acc->pin);
+                fscanf(file, "\nBalance: RM%lf\n", &acc->bal);
+                char accNoStr[20];
+                strncpy(accNoStr, dir->d_name, len - 4);
+                accNoStr[len - 4] = '\0';
+                acc->accNo = atoll(accNoStr);
+                fclose(file);
+
+                acc_arr[acc_count] = acc;
+                acc_count++;
+                loadedAccounts++;
+            }
+        }
+    }
+    closedir(directory);
+
+    time_t currentTime = time(NULL);
+    struct tm *localTime = localtime(&currentTime);
+    char time[100];
+    strftime(time, sizeof(time), "%d-%m-%Y %H:%M:%S", localTime);
+
+    printf("---------- SESSION INFO ----------\n");
+    printf("Time: %s\n", time);
+    printf("No. of loaded accounts: %d\n", loadedAccounts);
+    printf("\nWelcome to the Banking System App!\n");
+
+    menu(acc_arr, &acc_count); // launch menu to start program
     return 0;
 }
 // cd OneDrive/Documents/zbanksys
