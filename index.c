@@ -188,7 +188,7 @@ long long createAccNo()
 // checks if a file with the same number in database directory exists or not
 void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
-    char filePath[50];
+    char filePath[25];
     struct stat address;
     while (true)
     {
@@ -238,6 +238,7 @@ void createAcc(bankAccount *acc_arr[], int *acc_count)
     checkIfAccNoUnique(acc_arr, acc, acc_count);
 }
 
+// display all exisitng bank accounts
 void loadAccounts(bankAccount *acc_arr[], int *acc_count)
 {
     for (int i = 0; i < *acc_count; i++)
@@ -246,7 +247,8 @@ void loadAccounts(bankAccount *acc_arr[], int *acc_count)
     }
 }
 
-void confirmDetails(bankAccount *acc_arr[], int *acc_count)
+// multi-factor authentication to confirm account credentials
+int confirmDetails(bankAccount *acc_arr[], int *acc_count)
 {
     while (true)
     {
@@ -266,13 +268,49 @@ void confirmDetails(bankAccount *acc_arr[], int *acc_count)
             while (true)
             {
                 char input2[10];
-                printf("Does the ID number end with ****%s? (y/n): ", acc_arr[input - 1]->id);
-                fgets(input, sizeof(input), stdin);
-                input[strcspn(input, "\n")] = '\0';
-                if (strcmp(input, "y") == 0)
+                printf("Does the ID number end with ****%s? (y/n): ", acc_arr[number - 1]->id + 4);
+                fgets(input2, sizeof(input2), stdin);
+                if (strchr(input2, '\n') == NULL)
                 {
-                    printf("hello");
+                    int leftoverInput;
+                    while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                        ;
+                }
+                input2[strcspn(input2, "\n")] = '\0';
+                if (strcmp(input2, "y") == 0)
+                {
+                    while (true)
+                    {
+                        char input3[10];
+                        printf("Verify 4-digit PIN: ");
+                        fgets(input3, sizeof(input3), stdin);
+                        if (strchr(input3, '\n') == NULL)
+                        {
+                            int leftoverInput;
+                            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                                ;
+                        }
+                        input3[strcspn(input3, "\n")] = '\0';
+                        if (strcmp(input3, acc_arr[number - 1]->pin) == 0)
+                        {
+                            printf("PIN verified!\n");
+                            return number;
+                        }
+                        else
+                        {
+                            printf("Invalid! Enter the correct 4-digit PIN.\n\n");
+                            continue;
+                        }
+                    }
+                }
+                else if (strcmp(input2, "n") == 0)
+                {
                     break;
+                }
+                else
+                {
+                    printf("Invalid! Enter 'y' for YES or 'n' for NO.\n\n");
+                    continue;
                 }
             }
         }
@@ -284,13 +322,29 @@ void confirmDetails(bankAccount *acc_arr[], int *acc_count)
     }
 }
 
-void deleteFile()
+// delete file and free memory of selected bank account
+void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
+    char filePath[25];
+    int index = confirmDetails(acc_arr, acc_count);
+
+    // delete file from 'database' directory
+    snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc_arr[index - 1]->accNo);
+    remove(filePath);
+
+    // free current bank account memory from array to make space for next/new account
+    free(acc_arr[index - 1]);
+    acc_arr[index - 1] = NULL;
+    loadedAccounts--;
+    acc_arr[*acc_count] = acc;
+    (*acc_count)--;
+    printf("\n---------- Account deleted successfully! ----------\n");
 }
 
 // functions of operation to delete bank account
 void deleteAcc(bankAccount *acc_arr[], int *acc_count)
 {
+    bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- DELETE ACCOUNT ----------\n");
     if (loadedAccounts == 0)
     {
@@ -300,7 +354,7 @@ void deleteAcc(bankAccount *acc_arr[], int *acc_count)
     else
     {
         loadAccounts(acc_arr, acc_count);
-        confirmDetails(acc_arr, acc_count);
+        deleteFile(acc_arr, acc, acc_count);
     }
 }
 
@@ -346,6 +400,7 @@ void menu(bankAccount *acc_arr[], int *acc_count)
         else if (strcmp(option, "2") == 0 || strcmp(option, "delete") == 0)
         {
             deleteAcc(acc_arr, acc_count);
+
             return;
         }
         else if (strcmp(option, "3") == 0 || strcmp(option, "deposit") == 0)
