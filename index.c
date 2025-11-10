@@ -19,6 +19,7 @@
 #endif
 
 int loadedAccounts = 0;
+int arr_index;
 
 // create a 'database' directory if it has not existed yet
 void databaseDirectory(void)
@@ -351,7 +352,7 @@ void deleteAcc(bankAccount *acc_arr[], int *acc_count)
     printf("\n---------- DELETE ACCOUNT ----------\n");
     if (loadedAccounts == 0)
     {
-        printf("There are no existing bank accounts!");
+        printf("There are no existing bank accounts!\n");
         return;
     }
     else
@@ -361,11 +362,27 @@ void deleteAcc(bankAccount *acc_arr[], int *acc_count)
     }
 }
 
+// update deposit/withdraw balance in txt file
+void updateFiles(bankAccount *acc_arr[])
+{
+    char filePath[25];
+    snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc_arr[arr_index - 1]->accNo);
+    FILE *file = fopen(filePath, "w");
+    fclose(file);
+
+    file = fopen(filePath, "a");
+    fprintf(file, "Name: %s\n", acc_arr[arr_index - 1]->name);
+    fprintf(file, "ID: %s\n", acc_arr[arr_index - 1]->id);
+    fprintf(file, "Account Type: %s\n", acc_arr[arr_index - 1]->accType);
+    fprintf(file, "PIN: %s\n", acc_arr[arr_index - 1]->pin);
+    fprintf(file, "\nBalance: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+    fclose(file);
+}
+
 // add money into bank account
 void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
-    int index = confirmDetails(acc_arr, acc_count);
-
+    arr_index = confirmDetails(acc_arr, acc_count); // get the array index of selected account
     while (true)
     {
         double amount;
@@ -381,24 +398,10 @@ void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
         input[strcspn(input, "\n")] = '\0';
         if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= 50000)
         {
-            acc_arr[index - 1]->bal += amount; // add deposit amount to current balance
-
-            // update balance in txt file
-            char filePath[25];
-            snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc_arr[index - 1]->accNo);
-            FILE *file = fopen(filePath, "w");
-            fclose(file);
-
-            file = fopen(filePath, "a");
-            fprintf(file, "Name: %s\n", acc_arr[index - 1]->name);
-            fprintf(file, "ID: %s\n", acc_arr[index - 1]->id);
-            fprintf(file, "Account Type: %s\n", acc_arr[index - 1]->accType);
-            fprintf(file, "PIN: %s\n", acc_arr[index - 1]->pin);
-            fprintf(file, "\nBalance: RM%.2f\n", acc_arr[index - 1]->bal);
-            fclose(file);
-
+            acc_arr[arr_index - 1]->bal += amount; // add deposit amount to current balance
+            updateFiles(acc_arr);                  // update txt file
             printf("\n---------- Deposit successful! ----------\n");
-            printf("Your new balance is: RM%.2f\n", acc_arr[index - 1]->bal);
+            printf("Your new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
             break;
         }
         else
@@ -416,7 +419,7 @@ void deposit(bankAccount *acc_arr[], int *acc_count)
     printf("\n---------- DEPOSIT ----------\n");
     if (loadedAccounts == 0)
     {
-        printf("There are no existing bank accounts!");
+        printf("There are no existing bank accounts!\n");
         return;
     }
     else
@@ -426,10 +429,55 @@ void deposit(bankAccount *acc_arr[], int *acc_count)
     }
 }
 
-// withdraw money from bank account
-void withdraw()
+// deduct money from bank account
+void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
-    printf("WITHDRAW");
+    arr_index = confirmDetails(acc_arr, acc_count);
+    while (true)
+    {
+        double amount;
+        char input[10];
+        printf("Your current balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+        printf("Enter amount to withdraw: RM");
+        fgets(input, sizeof(input), stdin);
+        if (strchr(input, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
+        input[strcspn(input, "\n")] = '\0';
+        if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= (acc_arr[arr_index - 1]->bal))
+        {
+            acc_arr[arr_index - 1]->bal -= amount; // deduct amount from current balance
+            updateFiles(acc_arr);                  // update txt file
+            printf("\n---------- Withdraw successful! ----------\n");
+            printf("Your new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+            break;
+        }
+        else
+        {
+            printf("Invalid! Amount must be more than RM0 but not more than the current balance.\n\n");
+            continue;
+        }
+    }
+}
+
+// function of operations to withdraw money from bank account
+void withdraw(bankAccount *acc_arr[], int *acc_count)
+{
+    bankAccount *acc = malloc(sizeof(bankAccount));
+    printf("\n---------- WITHDRAW ----------\n");
+    if (loadedAccounts == 0)
+    {
+        printf("There are no existing bank accounts!\n");
+        return;
+    }
+    else
+    {
+        loadAccounts(acc_arr, acc_count);
+        withdrawBalance(acc_arr, acc, acc_count);
+    }
 }
 
 // transfer money from your account to another account
@@ -444,7 +492,8 @@ void menu(bankAccount *acc_arr[], int *acc_count)
     char option[999];
     while (true)
     {
-        printf("Please choose an operation:\n"
+        printf("\nWelcome to the Banking System App!\n"
+               "Please choose an operation:\n"
                "- Create New Bank Account (1 / create)\n"
                "- Delete Bank Account (2 / delete)\n"
                "- Deposit Cash (3 / deposit)\n"
@@ -457,28 +506,27 @@ void menu(bankAccount *acc_arr[], int *acc_count)
         if (strcmp(option, "1") == 0 || strcmp(option, "create") == 0)
         {
             createAcc(acc_arr, acc_count);
-            return;
+            continue;
         }
         else if (strcmp(option, "2") == 0 || strcmp(option, "delete") == 0)
         {
             deleteAcc(acc_arr, acc_count);
-
-            return;
+            continue;
         }
         else if (strcmp(option, "3") == 0 || strcmp(option, "deposit") == 0)
         {
             deposit(acc_arr, acc_count);
-            return;
+            continue;
         }
         else if (strcmp(option, "4") == 0 || strcmp(option, "withdraw") == 0)
         {
-            withdraw();
-            return;
+            withdraw(acc_arr, acc_count);
+            continue;
         }
         else if (strcmp(option, "5") == 0 || strcmp(option, "remittance") == 0)
         {
             remittance();
-            return;
+            continue;
         }
         else if (strcmp(option, "6") == 0 || strcmp(option, "exit") == 0)
         {
@@ -541,7 +589,6 @@ int main()
     printf("---------- SESSION INFO ----------\n");
     printf("Time: %s\n", time);
     printf("No. of loaded accounts: %d\n", loadedAccounts);
-    printf("\nWelcome to the Banking System App!\n");
 
     menu(acc_arr, &acc_count); // launch menu to start program
     return 0;
