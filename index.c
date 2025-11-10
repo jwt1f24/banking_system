@@ -350,15 +350,15 @@ void deleteAcc(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- DELETE ACCOUNT ----------\n");
-    if (loadedAccounts == 0)
-    {
-        printf("There are no existing bank accounts!\n");
-        return;
-    }
-    else
+    if (loadedAccounts > 0)
     {
         loadAccounts(acc_arr, acc_count);
         deleteFile(acc_arr, acc, acc_count);
+    }
+    else
+    {
+        printf("There are no existing bank accounts!\n");
+        return;
     }
 }
 
@@ -417,15 +417,15 @@ void deposit(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- DEPOSIT ----------\n");
-    if (loadedAccounts == 0)
-    {
-        printf("There are no existing bank accounts!\n");
-        return;
-    }
-    else
+    if (loadedAccounts > 0)
     {
         loadAccounts(acc_arr, acc_count);
         depositBalance(acc_arr, acc, acc_count);
+    }
+    else
+    {
+        printf("There are no existing bank accounts!\n");
+        return;
     }
 }
 
@@ -468,22 +468,72 @@ void withdraw(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- WITHDRAW ----------\n");
-    if (loadedAccounts == 0)
-    {
-        printf("There are no existing bank accounts!\n");
-        return;
-    }
-    else
+    if (loadedAccounts > 0)
     {
         loadAccounts(acc_arr, acc_count);
         withdrawBalance(acc_arr, acc, acc_count);
     }
+    else
+    {
+        printf("There are no existing bank accounts!\n");
+        return;
+    }
 }
 
-// transfer money from your account to another account
-void remittance()
+void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
-    printf("REMITTANCE");
+    arr_index = confirmDetails(acc_arr, acc_count); // get sender account
+    printf("\n---------- Select Receiver Account ----------\n");
+    while (true) // get receiver account
+    {
+        int number;
+        char input[10];
+        printf("Enter index number: ");
+        fgets(input, sizeof(input), stdin);
+        if (strchr(input, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
+        if (sscanf(input, "%d", &number) == 1 && number > 0 && number <= *acc_count)
+        {
+            // ensure that sender & receiver accounts are different
+            if (acc_arr[arr_index - 1]->accNo == acc_arr[number - 1]->accNo)
+            {
+                printf("Invalid! Sender & Receiver accounts must be DISTINCT from each other.\n\n");
+                continue;
+            }
+            else // both accounts are different (VALID)
+            {
+                printf("Both accounts are distinct!\n");
+                break;
+            }
+        }
+        else
+        {
+            printf("Invalid! Enter an index number within the available range.\n\n");
+            continue;
+        }
+    }
+}
+
+// function of operations to transfer money from an account to another
+void remittance(bankAccount *acc_arr[], int *acc_count)
+{
+    bankAccount *acc = malloc(sizeof(bankAccount));
+    printf("\n---------- REMITTANCE ----------\n");
+    if (loadedAccounts >= 2)
+    {
+        loadAccounts(acc_arr, acc_count);
+        printf("---------- Select Sender Account ----------");
+        transferMoney(acc_arr, acc, acc_count);
+    }
+    else
+    {
+        printf("At least 2 bank accounts are required for remittance!\n");
+        return;
+    }
 }
 
 // main menu that uses user input to execute operations, exit option closes the app
@@ -525,7 +575,7 @@ void menu(bankAccount *acc_arr[], int *acc_count)
         }
         else if (strcmp(option, "5") == 0 || strcmp(option, "remittance") == 0)
         {
-            remittance();
+            remittance(acc_arr, acc_count);
             continue;
         }
         else if (strcmp(option, "6") == 0 || strcmp(option, "exit") == 0)
