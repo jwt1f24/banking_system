@@ -380,7 +380,7 @@ void updateFile(bankAccount *acc_arr[])
     fclose(file);
 }
 
-// rewrite txt file's data (mainly for receiver account during remittance)
+// rewrite txt file's data, mainly for receiver account during remittance
 void updateReceiverFile(bankAccount *acc_arr[])
 {
     char filePath[25];
@@ -498,6 +498,7 @@ void withdraw(bankAccount *acc_arr[], int *acc_count)
     }
 }
 
+// transfer money from sender to receiver's bank account
 void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
     arr_index = confirmDetails(acc_arr, acc_count); // get sender account
@@ -537,24 +538,20 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                             ;
                     }
                     input[strcspn(input, "\n")] = '\0';
-                    if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= (acc_arr[arr_index - 1]->bal))
+                    if (sscanf(input, "%lf", &amount) == 1 && amount > 0)
                     {
                         double SavingsToCurrentFee = amount * 1.2;
                         double CurrentToSavingsFee = amount * 1.3;
                         // condition for Savings sender to Current receiver
-                        if (acc_arr[arr_index - 1]->accType == "Savings" && acc_arr[arr_index2 - 1]->accType == "Current")
+                        if (strcmp(acc_arr[arr_index - 1]->accType, "Savings") == 0 && strcmp(acc_arr[arr_index2 - 1]->accType, "Current") == 0)
                         {
+                            printf("Account type of sender is SAVINGS & receiver is CURRENT, 2% remittance fee will be charged.\n");
+                            printf("Transferred amount: RM%.2f\n", amount);
+                            printf("Remittance fee: RM%.2f\n", (amount * 0.2));
+                            printf("Total charged: RM%.2f\n", SavingsToCurrentFee);
+
                             // if remittance fee exceeds sender's current balance
-                            if (SavingsToCurrentFee > acc_arr[arr_index - 1]->bal)
-                            {
-                                printf("Account type of sender is SAVINGS & receiver is CURRENT.\n"
-                                       "A 2% remittance fee will be charged.\n"
-                                       "Total charged: RM%.2f\n",
-                                       SavingsToCurrentFee,
-                                       "Invalid! Total amount exceeds the current balance.\n\n");
-                                continue;
-                            }
-                            else
+                            if (SavingsToCurrentFee <= acc_arr[arr_index - 1]->bal)
                             {
                                 acc_arr[arr_index - 1]->bal -= SavingsToCurrentFee; // deduct transfer amount + remittance fee from sender's balance
                                 acc_arr[arr_index2 - 1]->bal += amount;             // receiver's balance receives transfer amount
@@ -565,20 +562,20 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                                 printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
                                 return;
                             }
-                        }
-                        // condition for Current sender to Savings receiver
-                        else if (acc_arr[arr_index - 1]->accType == "Current" && acc_arr[arr_index2 - 1]->accType == "Savings")
-                        {
-                            if (CurrentToSavingsFee > acc_arr[arr_index - 1]->bal)
+                            else
                             {
-                                printf("Account type of sender is CURRENT & receiver is SAVINGS.\n"
-                                       "A 3% remittance fee will be charged.\n"
-                                       "Total charged: RM%.2f\n",
-                                       CurrentToSavingsFee,
-                                       "Invalid! Total amount exceeds the current balance.\n\n");
+                                printf("Invalid! Total amount exceeds the current balance.\n\n");
                                 continue;
                             }
-                            else
+                        }
+                        // condition for Current sender to Savings receiver
+                        else if (strcmp(acc_arr[arr_index - 1]->accType, "Current") == 0 && strcmp(acc_arr[arr_index2 - 1]->accType, "Savings") == 0)
+                        {
+                            printf("Account type of sender is CURRENT & receiver is SAVINGS, 3% remittance fee will be charged.\n");
+                            printf("Transferred amount: RM%.2f\n", amount);
+                            printf("Remittance fee: RM%.2f\n", (amount * 0.3));
+                            printf("Total charged: RM%.2f\n", CurrentToSavingsFee);
+                            if (CurrentToSavingsFee <= acc_arr[arr_index - 1]->bal)
                             {
                                 acc_arr[arr_index - 1]->bal -= CurrentToSavingsFee;
                                 acc_arr[arr_index2 - 1]->bal += amount;
@@ -589,18 +586,32 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                                 printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
                                 return;
                             }
+                            else
+                            {
+                                printf("Invalid! Total amount exceeds the current balance.\n\n");
+                                continue;
+                            }
                         }
                         // condition if sender & receiver have same sccount type (no remittance fee)
                         else
                         {
-                            acc_arr[arr_index - 1]->bal -= amount;
-                            acc_arr[arr_index2 - 1]->bal += amount;
-                            updateFile(acc_arr);
-                            updateReceiverFile(acc_arr);
-                            printf("\n---------- Remittance successful! ----------\n");
-                            printf("Sender's new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
-                            printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
-                            return;
+                            printf("Account type of sender & receiver are the same, no remittance fee will be charged.\n");
+                            if (amount <= acc_arr[arr_index - 1]->bal)
+                            {
+                                acc_arr[arr_index - 1]->bal -= amount;
+                                acc_arr[arr_index2 - 1]->bal += amount;
+                                updateFile(acc_arr);
+                                updateReceiverFile(acc_arr);
+                                printf("\n---------- Remittance successful! ----------\n");
+                                printf("Sender's new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+                                printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
+                                return;
+                            }
+                            else
+                            {
+                                printf("Invalid! Total amount exceeds the current balance.\n\n");
+                                continue;
+                            }
                         }
                     }
                     else
