@@ -6,36 +6,24 @@
 #include <stdbool.h>
 #include <math.h>
 #include <time.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <errno.h>
-
-#ifdef _WIN32
-#include <direct.h>
-#define MKDIR(path) _mkdir(path)
-#else
-#define MKDIR(path) mkdir(path, 0755)
-#endif
+#include <limits.h>
 
 int loadedAccounts = 0;
 int arr_index;
 int arr_index2;
 
-// create a 'database' directory if it has not existed yet
-void databaseDirectory(void)
+// append entry for each action to transction.log
+void appendLog(char *action)
 {
-    if (MKDIR("database") == -1)
-    {
-        if (errno == EEXIST) // if database exists then just continue
-        {
-            return;
-        }
-        else
-        {
-            perror("mkdir"); // create folder otherwise
-        }
-    }
+    FILE *log = fopen("database/transaction.log", "a");
+
+    time_t currentTime = time(NULL);
+    struct tm *localTime = localtime(&currentTime);
+    char time[100];
+    strftime(time, sizeof(time), "%d-%m-%Y %H:%M:%S", localTime);
+
+    fprintf(log, "[%s] %s\n", time, action); // add changes to transaction.log
+    fclose(log);
 }
 
 // setup structure that contains data of a bank account
@@ -191,13 +179,14 @@ long long createAccNo()
 void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
     char filePath[25];
-    struct stat address;
     while (true)
     {
         acc->accNo = createAccNo();
         snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc->accNo); // look for file with same name as generated number
-        if (stat(filePath, &address) == 0)                                     // reloop & generate new number because account number already exists
+        FILE *accountFile = fopen(filePath, "r");
+        if (accountFile != NULL) // reloop & generate new number because account number already exists
         {
+            fclose(accountFile);
             printf("Account number already exists. Generating new account number...\n\n");
             continue;
         }
@@ -214,12 +203,16 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
             fprintf(newFile, "PIN: %s\n", acc->pin);
             fprintf(newFile, "\nBalance: RM%.2f\n", acc->bal);
             fclose(newFile);
-            loadedAccounts++;
 
             // store account info into array
             acc_arr[*acc_count] = acc;
             (*acc_count)++;
             printf("\n---------- Account created successfully! ----------\n");
+            // append changes to transaction log
+            char action[100];
+            snprintf(action, sizeof(action), "Created account: %lld", acc->accNo);
+            appendLog(action);
+            loadedAccounts++;
             break;
         }
     }
@@ -330,6 +323,11 @@ void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
     char filePath[25];
     int index = confirmDetails(acc_arr, acc_count);
 
+    // append changes to transaction log
+    char action[100];
+    snprintf(action, sizeof(action), "Deleted account: %lld", acc_arr[index - 1]->accNo);
+    appendLog(action);
+
     // delete file from 'database' directory
     snprintf(filePath, sizeof(filePath), "database/%lld.txt", acc_arr[index - 1]->accNo);
     remove(filePath);
@@ -340,10 +338,10 @@ void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
     {
         acc_arr[i] = acc_arr[i + 1];
     }
-    loadedAccounts--;
     acc_arr[*acc_count - 1] = NULL;
     (*acc_count)--;
     printf("\n---------- Account deleted successfully! ----------\n");
+    loadedAccounts--;
 }
 
 // function of operations to delete bank account
@@ -456,6 +454,11 @@ void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
         double amount;
         char input[10];
         printf("Your current balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+        if (acc_arr[arr_index - 1]->bal == 0) // no money to withdraw
+        {
+            printf("Invalid! Your account has no money to withdraw!\n");
+            return;
+        }
         printf("Enter amount to withdraw: RM");
         fgets(input, sizeof(input), stdin);
         if (strchr(input, '\n') == NULL)
@@ -522,13 +525,18 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                 printf("Invalid! Sender & Receiver accounts must be DISTINCT from each other.\n\n");
                 continue;
             }
-            else // both accounts are different (VALID)
+            else // proceed if both accounts are different
             {
                 while (true)
                 {
                     double amount;
                     char input[10];
                     printf("Your current balance: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+                    if (acc_arr[arr_index - 1]->bal == 0)
+                    {
+                        printf("Invalid! Your account has no money to transfer!\n");
+                        return;
+                    }
                     printf("Enter amount to transfer: RM");
                     fgets(input, sizeof(input), stdin);
                     if (strchr(input, '\n') == NULL)
@@ -710,39 +718,16 @@ int main()
     int acc_max = 999;
     bankAccount **acc_arr = malloc(acc_max * sizeof(bankAccount *)); // array to store bank accounts and their data
 
-    databaseDirectory(); // check if 'database' folder exists, create one if not
-    DIR *directory = opendir("database");
-    struct dirent *dir;
-    while ((dir = readdir(directory)) != NULL)
+    // check if 'database' directory exists or not
+    FILE *db = fopen("database/transaction.log", "a");
+    if (db == NULL)
     {
-        size_t len = strlen(dir->d_name);
-        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
-        {
-            char filePath[25];
-            snprintf(filePath, sizeof(filePath), "database/%s", dir->d_name);
-            FILE *file = fopen(filePath, "r");
-            if (file != NULL)
-            {
-                bankAccount *acc = malloc(sizeof(bankAccount));
-                fscanf(file, "Name: %[^\n]\n", acc->name);
-                fscanf(file, "ID: %[^\n]\n", acc->id);
-                fscanf(file, "Account Type: %[^\n]\n", acc->accType);
-                fscanf(file, "PIN: %[^\n]\n", acc->pin);
-                fscanf(file, "\nBalance: RM%lf\n", &acc->bal);
-                char accNoStr[20];
-                strncpy(accNoStr, dir->d_name, len - 4);
-                accNoStr[len - 4] = '\0';
-                acc->accNo = atoll(accNoStr);
-                fclose(file);
-
-                acc_arr[acc_count] = acc;
-                acc_count++;
-                loadedAccounts++;
-            }
-        }
+        printf("Error! 'database' directory not found. Please create a folder 'database' in the same directory as this file.\n");
+        return 1; // always exit program, until 'database' directory exists
     }
-    closedir(directory);
+    fclose(db);
 
+    // get current date & time
     time_t currentTime = time(NULL);
     struct tm *localTime = localtime(&currentTime);
     char time[100];
