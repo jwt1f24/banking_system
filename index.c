@@ -4,9 +4,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <math.h>
 #include <time.h>
-#include <limits.h>
 
 int loadedAccounts = 0;
 int arr_index;
@@ -22,7 +20,7 @@ void appendLog(char *action)
     char time[100];
     strftime(time, sizeof(time), "%d-%m-%Y %H:%M:%S", localTime);
 
-    fprintf(log, "[%s] %s\n", time, action); // add changes to transaction.log
+    fprintf(log, "[%s] %s\n", time, action); // add changes to the file
     fclose(log);
 }
 
@@ -33,7 +31,7 @@ typedef struct
     char id[10];
     char accType[9];
     char pin[6];
-    long long accNo; // used long long cause it can store large numbers while having less risk of bugs
+    long long accNo; // used long long to store large numbers
     double bal;
 } bankAccount;
 
@@ -47,8 +45,8 @@ void enterName(bankAccount *acc)
         if (strchr(acc->name, '\n') == NULL)
         {
             int leftoverInput;
-            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF) // remove extra input to prevent it from carrying over to the next input iteration
-                ;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ; // remove extra input so it won't carry over to the next input iteration
         }
         acc->name[strcspn(acc->name, "\n")] = '\0'; // remove space between each input character
         bool inputValid = true;
@@ -210,7 +208,7 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
             printf("\n---------- Account created successfully! ----------\n");
             // append changes to transaction log
             char action[100];
-            snprintf(action, sizeof(action), "Created account: %lld", acc->accNo);
+            snprintf(action, sizeof(action), "Created account %lld", acc->accNo);
             appendLog(action);
             loadedAccounts++;
             break;
@@ -325,7 +323,7 @@ void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 
     // append changes to transaction log
     char action[100];
-    snprintf(action, sizeof(action), "Deleted account: %lld", acc_arr[index - 1]->accNo);
+    snprintf(action, sizeof(action), "Deleted account %lld", acc_arr[index - 1]->accNo);
     appendLog(action);
 
     // delete file from 'database' directory
@@ -418,6 +416,10 @@ void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
             updateFile(acc_arr);                   // update txt file
             printf("\n---------- Deposit successful! ----------\n");
             printf("Your new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+            // append changes to transaction log
+            char action[100];
+            snprintf(action, sizeof(action), "Account %lld deposited RM%.2f", acc_arr[arr_index - 1]->accNo, acc_arr[arr_index - 1]->bal);
+            appendLog(action);
             break;
         }
         else
@@ -474,6 +476,10 @@ void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
             updateFile(acc_arr);                   // update txt file
             printf("\n---------- Withdraw successful! ----------\n");
             printf("Your new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
+            // append changes to transaction log
+            char action[100];
+            snprintf(action, sizeof(action), "Account %lld withdrew RM%.2f", acc_arr[arr_index - 1]->accNo, amount);
+            appendLog(action);
             break;
         }
         else
@@ -553,7 +559,7 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                         // condition for Savings sender to Current receiver
                         if (strcmp(acc_arr[arr_index - 1]->accType, "Savings") == 0 && strcmp(acc_arr[arr_index2 - 1]->accType, "Current") == 0)
                         {
-                            printf("Account type of sender is SAVINGS & receiver is CURRENT, 2% remittance fee will be charged.\n");
+                            printf("Account type of sender is SAVINGS & receiver is CURRENT, 2 percent remittance fee will be charged.\n");
                             printf("Transferred amount: RM%.2f\n", amount);
                             printf("Remittance fee: RM%.2f\n", (amount * 0.2));
                             printf("Total charged: RM%.2f\n", SavingsToCurrentFee);
@@ -568,6 +574,11 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                                 printf("\n---------- Remittance successful! ----------\n");
                                 printf("Sender's new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
                                 printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
+                                // append changes to transaction log
+                                char action[100];
+                                snprintf(action, sizeof(action), "Account %lld transferred %.2f to account %lld (Remittance fee: %.2f)",
+                                         acc_arr[arr_index - 1]->accNo, amount, acc_arr[arr_index2 - 1]->accNo, (amount * 0.2));
+                                appendLog(action);
                                 return;
                             }
                             else
@@ -579,7 +590,7 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                         // condition for Current sender to Savings receiver
                         else if (strcmp(acc_arr[arr_index - 1]->accType, "Current") == 0 && strcmp(acc_arr[arr_index2 - 1]->accType, "Savings") == 0)
                         {
-                            printf("Account type of sender is CURRENT & receiver is SAVINGS, 3% remittance fee will be charged.\n");
+                            printf("Account type of sender is CURRENT & receiver is SAVINGS, 3 percent remittance fee will be charged.\n");
                             printf("Transferred amount: RM%.2f\n", amount);
                             printf("Remittance fee: RM%.2f\n", (amount * 0.3));
                             printf("Total charged: RM%.2f\n", CurrentToSavingsFee);
@@ -592,6 +603,10 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                                 printf("\n---------- Remittance successful! ----------\n");
                                 printf("Sender's new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
                                 printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
+                                char action[100];
+                                snprintf(action, sizeof(action), "Account %lld transferred %.2f to account %lld (Remittance fee: %.2f)",
+                                         acc_arr[arr_index - 1]->accNo, amount, acc_arr[arr_index2 - 1]->accNo, (amount * 0.3));
+                                appendLog(action);
                                 return;
                             }
                             else
@@ -613,6 +628,10 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                                 printf("\n---------- Remittance successful! ----------\n");
                                 printf("Sender's new balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
                                 printf("Receiver's new balance is: RM%.2f\n", acc_arr[arr_index2 - 1]->bal);
+                                char action[100];
+                                snprintf(action, sizeof(action), "Account %lld transferred %.2f to account %lld",
+                                         acc_arr[arr_index - 1]->accNo, amount, acc_arr[arr_index2 - 1]->accNo);
+                                appendLog(action);
                                 return;
                             }
                             else
@@ -723,9 +742,11 @@ int main()
     if (db == NULL)
     {
         printf("Error! 'database' directory not found. Please create a folder 'database' in the same directory as this file.\n");
-        return 1; // always exit program, until 'database' directory exists
+        return 1; // always exit program until 'database' directory exists
     }
     fclose(db);
+
+    // count number of loaded accounts
 
     // get current date & time
     time_t currentTime = time(NULL);
