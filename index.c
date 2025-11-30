@@ -5,33 +5,35 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
+#include <dirent.h> // idk if this is C-native or not, but I'll be using this cause of all the methods I tried to load accounts, only this one worked
 
-int loadedAccounts = 0;
+// global var to access array index through multiple functions, mainly for remittance operation
 int arr_index;
 int arr_index2;
 
 // append entry for each action to transction.log
 void appendLog(char *action)
 {
-    FILE *log = fopen("database/transaction.log", "a");
+    FILE *log = fopen("database/transaction.log", "a"); // open transaction.log in append mode
 
+    // fetch local time
     time_t currentTime = time(NULL);
     struct tm *localTime = localtime(&currentTime);
     char time[100];
     strftime(time, sizeof(time), "%d-%m-%Y %H:%M:%S", localTime);
 
-    fprintf(log, "[%s] %s\n", time, action); // add changes to the file
+    fprintf(log, "[%s] %s\n", time, action); // print & append new changes to the file
     fclose(log);
 }
 
 // setup structure that contains data of a bank account
 typedef struct
 {
-    char name[55];
+    char name[35];
     char id[10];
     char accType[9];
     char pin[6];
-    long long accNo; // used long long to store large numbers
+    long long accNo; // used long long to store large numbers that span 7-9 digits
     double bal;
 } bankAccount;
 
@@ -42,11 +44,12 @@ void enterName(bankAccount *acc)
     {
         printf("Enter your name: ");
         fgets(acc->name, sizeof(acc->name), stdin); // scan the user input
+        // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(acc->name, '\n') == NULL)
         {
             int leftoverInput;
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
-                ; // remove extra input so it won't carry over to the next input iteration
+                ;
         }
         acc->name[strcspn(acc->name, "\n")] = '\0'; // remove space between each input character
         bool inputValid = true;
@@ -84,11 +87,11 @@ void enterID(bankAccount *acc)
         }
         acc->id[strcspn(acc->id, "\n")] = '\0';
         bool inputValid = true;
-        if (strlen(acc->id) != 8)
+        if (strlen(acc->id) != 8) // ensure ID has exactly 8 numbers
         {
             inputValid = false;
         }
-        for (int i = 0; i < strlen(acc->id); i++)
+        for (int i = 0; i < strlen(acc->id); i++) // invalid if ID has a non-number input
         {
             if (!isdigit(acc->id[i]))
             {
@@ -142,13 +145,13 @@ void enterPIN(bankAccount *acc)
         }
         acc->pin[strcspn(acc->pin, "\n")] = '\0';
         bool inputValid = true;
-        if (strlen(acc->pin) != 4)
+        if (strlen(acc->pin) != 4) // ensure PIN has exactly 4 digits
         {
             inputValid = false;
         }
         for (int i = 0; i < strlen(acc->pin); i++)
         {
-            if (!isdigit(acc->pin[i]))
+            if (!isdigit(acc->pin[i])) // invalid if PIN has a non-number input
             {
                 inputValid = false;
                 break;
@@ -193,7 +196,7 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
             FILE *newFile = fopen(filePath, "w");
             fclose(newFile);
 
-            // put account info into the txt file
+            // store account info into the txt file
             newFile = fopen(filePath, "a");
             fprintf(newFile, "Name: %s\n", acc->name);
             fprintf(newFile, "ID: %s\n", acc->id);
@@ -205,12 +208,12 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
             // store account info into array
             acc_arr[*acc_count] = acc;
             (*acc_count)++;
-            printf("\n---------- Account created successfully! ----------\n");
+
             // append changes to transaction log
             char action[100];
             snprintf(action, sizeof(action), "Created account %lld", acc->accNo);
             appendLog(action);
-            loadedAccounts++;
+            printf("\n---------- Account created successfully! ----------\n");
             break;
         }
     }
@@ -226,7 +229,7 @@ void createAcc(bankAccount *acc_arr[], int *acc_count)
     enterID(acc);
     enterAccType(acc);
     enterPIN(acc);
-    acc->bal = 0.00;
+    acc->bal = 0.00; // initialize balance as 0.00 for every new account
 
     checkIfAccNoUnique(acc_arr, acc, acc_count);
 }
@@ -250,17 +253,21 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
 
         printf("Enter index number: ");
         fgets(input, sizeof(input), stdin);
+        // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(input, '\n') == NULL)
         {
             int leftoverInput;
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
                 ;
         }
+        // ensure we can only select from 1 to the highest count of current existing accounts
         if (sscanf(input, "%d", &number) == 1 && number > 0 && number <= *acc_count)
         {
             while (true)
             {
                 char input2[10];
+
+                // confirm ID number
                 printf("Does the ID number end with ****%s? (y/n): ", acc_arr[number - 1]->id + 4);
                 fgets(input2, sizeof(input2), stdin);
                 if (strchr(input2, '\n') == NULL)
@@ -275,6 +282,8 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
                     while (true)
                     {
                         char input3[10];
+
+                        // confirm PIN number
                         printf("Verify 4-digit PIN: ");
                         fgets(input3, sizeof(input3), stdin);
                         if (strchr(input3, '\n') == NULL)
@@ -284,6 +293,7 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
                                 ;
                         }
                         input3[strcspn(input3, "\n")] = '\0';
+                        // return the account index if all credentials are validated
                         if (strcmp(input3, acc_arr[number - 1]->pin) == 0)
                         {
                             printf("PIN verified!\n");
@@ -298,7 +308,7 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
                 }
                 else if (strcmp(input2, "n") == 0)
                 {
-                    break;
+                    break; // if NO, go back to account select prompt
                 }
                 else
                 {
@@ -339,7 +349,7 @@ void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
     acc_arr[*acc_count - 1] = NULL;
     (*acc_count)--;
     printf("\n---------- Account deleted successfully! ----------\n");
-    loadedAccounts--;
+    return;
 }
 
 // function of operations to delete bank account
@@ -347,7 +357,7 @@ void deleteAcc(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- DELETE ACCOUNT ----------\n");
-    if (loadedAccounts > 0)
+    if (*acc_count > 0)
     {
         loadAccounts(acc_arr, acc_count);
         deleteFile(acc_arr, acc, acc_count);
@@ -401,8 +411,10 @@ void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
     {
         double amount;
         char input[10];
+
         printf("Enter amount to deposit: RM");
         fgets(input, sizeof(input), stdin);
+        // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(input, '\n') == NULL)
         {
             int leftoverInput;
@@ -435,7 +447,7 @@ void deposit(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- DEPOSIT ----------\n");
-    if (loadedAccounts > 0)
+    if (*acc_count > 0)
     {
         loadAccounts(acc_arr, acc_count);
         depositBalance(acc_arr, acc, acc_count);
@@ -455,6 +467,8 @@ void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
     {
         double amount;
         char input[10];
+
+        // display selected account's current balance
         printf("Your current balance is: RM%.2f\n", acc_arr[arr_index - 1]->bal);
         if (acc_arr[arr_index - 1]->bal == 0) // no money to withdraw
         {
@@ -463,6 +477,7 @@ void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
         }
         printf("Enter amount to withdraw: RM");
         fgets(input, sizeof(input), stdin);
+        // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(input, '\n') == NULL)
         {
             int leftoverInput;
@@ -495,7 +510,7 @@ void withdraw(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- WITHDRAW ----------\n");
-    if (loadedAccounts > 0)
+    if (*acc_count > 0)
     {
         loadAccounts(acc_arr, acc_count);
         withdrawBalance(acc_arr, acc, acc_count);
@@ -662,7 +677,7 @@ void remittance(bankAccount *acc_arr[], int *acc_count)
 {
     bankAccount *acc = malloc(sizeof(bankAccount));
     printf("\n---------- REMITTANCE ----------\n");
-    if (loadedAccounts >= 2)
+    if (*acc_count >= 2)
     {
         loadAccounts(acc_arr, acc_count);
         printf("---------- Select Sender Account ----------\n");
@@ -678,7 +693,7 @@ void remittance(bankAccount *acc_arr[], int *acc_count)
 // main menu that uses user input to execute operations, exit option closes the app
 void menu(bankAccount *acc_arr[], int *acc_count)
 {
-    char option[999];
+    char option[20];
     while (true)
     {
         printf("\nWelcome to the Banking System App!\n"
@@ -691,6 +706,12 @@ void menu(bankAccount *acc_arr[], int *acc_count)
                "- Exit (6 / exit)\n"
                "Enter option: ");
         fgets(option, sizeof(option), stdin);
+        if (strchr(option, '\n') == NULL)
+        {
+            int leftoverInput;
+            while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
+                ;
+        }
         option[strcspn(option, "\n")] = '\0';
         if (strcmp(option, "1") == 0 || strcmp(option, "create") == 0)
         {
@@ -733,6 +754,7 @@ void menu(bankAccount *acc_arr[], int *acc_count)
 // starts up the program by calling menu()
 int main()
 {
+    srand(time(NULL)); // ensure numbers generated are always random for account creation
     int acc_count = 0;
     int acc_max = 999;
     bankAccount **acc_arr = malloc(acc_max * sizeof(bankAccount *)); // array to store bank accounts and their data
@@ -742,11 +764,40 @@ int main()
     if (db == NULL)
     {
         printf("Error! 'database' directory not found. Please create a folder 'database' in the same directory as this file.\n");
-        return 1; // always exit program until 'database' directory exists
+        return 1; // always exit program until 'database' directory exists, user can manually create it if they deleted it
     }
     fclose(db);
 
-    // count number of loaded accounts
+    DIR *directory = opendir("database");
+    struct dirent *dir;
+    while ((dir = readdir(directory)) != NULL)
+    {
+        size_t len = strlen(dir->d_name);
+        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
+        {
+            char filePath[50];
+            snprintf(filePath, sizeof(filePath), "database/%s", dir->d_name);
+            FILE *file = fopen(filePath, "r");
+            if (file != NULL)
+            {
+                bankAccount *acc = malloc(sizeof(bankAccount));
+                fscanf(file, "Name: %[^\n]\n", acc->name);
+                fscanf(file, "ID: %[^\n]\n", acc->id);
+                fscanf(file, "Account Type: %[^\n]\n", acc->accType);
+                fscanf(file, "PIN: %[^\n]\n", acc->pin);
+                fscanf(file, "\nBalance: RM%lf\n", &acc->bal);
+                char accNoStr[20];
+                strncpy(accNoStr, dir->d_name, len - 4);
+                accNoStr[len - 4] = '\0';
+                acc->accNo = atoll(accNoStr);
+                fclose(file);
+                acc_arr[acc_count] = acc;
+                acc_count++;
+                // loadedAccounts++;
+            }
+        }
+    }
+    closedir(directory);
 
     // get current date & time
     time_t currentTime = time(NULL);
@@ -756,7 +807,7 @@ int main()
 
     printf("---------- SESSION INFO ----------\n");
     printf("Time: %s\n", time);
-    printf("No. of loaded accounts: %d\n", loadedAccounts);
+    printf("No. of loaded accounts: %d\n", acc_count);
 
     menu(acc_arr, &acc_count); // launch menu to start program
     return 0;
