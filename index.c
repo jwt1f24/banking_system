@@ -42,6 +42,7 @@ void enterName(bankAccount *acc)
 {
     while (true)
     {
+        printf("NOTE: You cannot cancel this process!\n");
         printf("Enter your name: ");
         fgets(acc->name, sizeof(acc->name), stdin); // scan the user input
         // remove input exceeding the variable's size so it won't carry over to the next input prompt
@@ -251,7 +252,7 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
         int number;
         char input[10];
 
-        printf("Enter index number: ");
+        printf("Enter index number ('C' to cancel): ");
         fgets(input, sizeof(input), stdin);
         // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(input, '\n') == NULL)
@@ -260,8 +261,14 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
                 ;
         }
+        input[strcspn(input, "\n")] = '\0';
+        // if user wants to cancel, go back to menu
+        if (strcmp(input, "C") == 0)
+        {
+            return -1;
+        }
         // ensure we can only select from 1 to the highest count of current existing accounts
-        if (sscanf(input, "%d", &number) == 1 && number > 0 && number <= *acc_count)
+        else if (sscanf(input, "%d", &number) == 1 && number > 0 && number <= *acc_count)
         {
             while (true)
             {
@@ -284,7 +291,7 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
                         char input3[10];
 
                         // confirm PIN number
-                        printf("Verify 4-digit PIN: ");
+                        printf("Verify 4-digit PIN ('C' to cancel): ");
                         fgets(input3, sizeof(input3), stdin);
                         if (strchr(input3, '\n') == NULL)
                         {
@@ -293,8 +300,13 @@ int confirmDetails(bankAccount *acc_arr[], int *acc_count)
                                 ;
                         }
                         input3[strcspn(input3, "\n")] = '\0';
+                        // if user wants to cancel, go back to menu
+                        if (strcmp(input3, "C") == 0)
+                        {
+                            return -1;
+                        }
                         // return the account index if all credentials are validated
-                        if (strcmp(input3, acc_arr[number - 1]->pin) == 0)
+                        else if (strcmp(input3, acc_arr[number - 1]->pin) == 0)
                         {
                             printf("PIN verified!\n");
                             return number;
@@ -330,6 +342,12 @@ void deleteFile(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
     char filePath[25];
     int index = confirmDetails(acc_arr, acc_count);
+
+    // if user wants to cancel, go back to menu
+    if (index == -1)
+    {
+        return;
+    }
 
     // append changes to transaction log
     char action[100];
@@ -407,12 +425,17 @@ void updateReceiverFile(bankAccount *acc_arr[])
 void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
     arr_index = confirmDetails(acc_arr, acc_count); // get the array index of selected account
+    // if user wants to cancel, go back to menu
+    if (arr_index == -1)
+    {
+        return;
+    }
     while (true)
     {
         double amount;
         char input[10];
 
-        printf("Enter amount to deposit: RM");
+        printf("Enter amount to deposit ('C' to cancel): RM");
         fgets(input, sizeof(input), stdin);
         // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(input, '\n') == NULL)
@@ -422,7 +445,13 @@ void depositBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                 ;
         }
         input[strcspn(input, "\n")] = '\0';
-        if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= 50000)
+        // if user wants to cancel, go back to menu
+        if (strcmp(input, "C") == 0)
+        {
+            return;
+        }
+        // ensure amount must be > RM0 and <= RM50k per operation
+        else if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= 50000)
         {
             acc_arr[arr_index - 1]->bal += amount; // add deposit amount to current balance
             updateFile(acc_arr);                   // update txt file
@@ -463,6 +492,11 @@ void deposit(bankAccount *acc_arr[], int *acc_count)
 void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
     arr_index = confirmDetails(acc_arr, acc_count);
+    // if user wants to cancel, go back to menu
+    if (arr_index == -1)
+    {
+        return;
+    }
     while (true)
     {
         double amount;
@@ -475,7 +509,7 @@ void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
             printf("Invalid! Your account has no money to withdraw!\n");
             return;
         }
-        printf("Enter amount to withdraw: RM");
+        printf("Enter amount to withdraw ('C' to cancel): RM");
         fgets(input, sizeof(input), stdin);
         // remove input exceeding the variable's size so it won't carry over to the next input prompt
         if (strchr(input, '\n') == NULL)
@@ -485,7 +519,13 @@ void withdrawBalance(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                 ;
         }
         input[strcspn(input, "\n")] = '\0';
-        if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= (acc_arr[arr_index - 1]->bal))
+        // if user wants to cancel, go back to menu
+        if (strcmp(input, "C") == 0)
+        {
+            return;
+        }
+        // ensure amount to withdraw is > RM0 but also <= current balance of account
+        else if (sscanf(input, "%lf", &amount) == 1 && amount > 0 && amount <= (acc_arr[arr_index - 1]->bal))
         {
             acc_arr[arr_index - 1]->bal -= amount; // deduct amount from current balance
             updateFile(acc_arr);                   // update txt file
@@ -526,11 +566,16 @@ void withdraw(bankAccount *acc_arr[], int *acc_count)
 void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
 {
     arr_index = confirmDetails(acc_arr, acc_count); // get sender account
+    // if user wants to cancel, go back to menu
+    if (arr_index == -1)
+    {
+        return;
+    }
     printf("\n---------- Select Receiver Account ----------\n");
     while (true) // get receiver account
     {
         char input[10];
-        printf("Enter index number: ");
+        printf("Enter index number ('C' to cancel): ");
         fgets(input, sizeof(input), stdin);
         if (strchr(input, '\n') == NULL)
         {
@@ -538,7 +583,13 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
             while ((leftoverInput = getchar()) != '\n' && leftoverInput != EOF)
                 ;
         }
-        if (sscanf(input, "%d", &arr_index2) == 1 && arr_index2 > 0 && arr_index2 <= *acc_count)
+        input[strcspn(input, "\n")] = '\0';
+        // if user wants to cancel, go back to menu
+        if (strcmp(input, "C") == 0)
+        {
+            return;
+        }
+        else if (sscanf(input, "%d", &arr_index2) == 1 && arr_index2 > 0 && arr_index2 <= *acc_count)
         {
             // ensure that sender & receiver accounts are different
             if (acc_arr[arr_index - 1]->accNo == acc_arr[arr_index2 - 1]->accNo)
@@ -558,7 +609,7 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                         printf("Invalid! Your account has no money to transfer!\n");
                         return;
                     }
-                    printf("Enter amount to transfer: RM");
+                    printf("Enter amount to transfer ('C' to cancel): RM");
                     fgets(input, sizeof(input), stdin);
                     if (strchr(input, '\n') == NULL)
                     {
@@ -567,7 +618,12 @@ void transferMoney(bankAccount *acc_arr[], bankAccount *acc, int *acc_count)
                             ;
                     }
                     input[strcspn(input, "\n")] = '\0';
-                    if (sscanf(input, "%lf", &amount) == 1 && amount > 0)
+                    // if user wants to cancel, go back to menu
+                    if (strcmp(input, "C") == 0)
+                    {
+                        return;
+                    }
+                    else if (sscanf(input, "%lf", &amount) == 1 && amount > 0)
                     {
                         double SavingsToCurrentFee = amount * 1.2;
                         double CurrentToSavingsFee = amount * 1.3;
@@ -768,32 +824,41 @@ int main()
     }
     fclose(db);
 
+    // read 'database' to count the number of loaded accounts
     DIR *directory = opendir("database");
     struct dirent *dir;
-    while ((dir = readdir(directory)) != NULL)
+    while ((dir = readdir(directory)) != NULL) // if 'database' is not empty, read all files within
     {
+        // look for all files ending with '.txt'
         size_t len = strlen(dir->d_name);
-        if (len > 4 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
+        if (len >= 10 && strcmp(dir->d_name + (len - 4), ".txt") == 0)
         {
+            // access the file
             char filePath[50];
             snprintf(filePath, sizeof(filePath), "database/%s", dir->d_name);
             FILE *file = fopen(filePath, "r");
             if (file != NULL)
             {
+                // allocate a new memory location for an account to store into the array
                 bankAccount *acc = malloc(sizeof(bankAccount));
+
+                // read file contents
                 fscanf(file, "Name: %[^\n]\n", acc->name);
                 fscanf(file, "ID: %[^\n]\n", acc->id);
                 fscanf(file, "Account Type: %[^\n]\n", acc->accType);
                 fscanf(file, "PIN: %[^\n]\n", acc->pin);
                 fscanf(file, "\nBalance: RM%lf\n", &acc->bal);
+
+                // use the file name as account number
                 char accNoStr[20];
-                strncpy(accNoStr, dir->d_name, len - 4);
+                strncpy(accNoStr, dir->d_name, len - 4); // get file name, excluding '.txt'
                 accNoStr[len - 4] = '\0';
-                acc->accNo = atoll(accNoStr);
+                acc->accNo = atoll(accNoStr); // convert file name from string to a long long number
                 fclose(file);
+
+                // for every account that exists within 'database', load account and its info into the array
                 acc_arr[acc_count] = acc;
-                acc_count++;
-                // loadedAccounts++;
+                acc_count++; // increase count of loaded accounts
             }
         }
     }
