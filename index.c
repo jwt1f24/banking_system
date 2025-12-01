@@ -42,7 +42,6 @@ void enterName(bankAccount *acc)
 {
     while (true)
     {
-        printf("NOTE: You cannot cancel this process!\n");
         printf("Enter your name: ");
         fgets(acc->name, sizeof(acc->name), stdin); // scan the user input
         // remove input exceeding the variable's size so it won't carry over to the next input prompt
@@ -224,6 +223,7 @@ void checkIfAccNoUnique(bankAccount *acc_arr[], bankAccount *acc, int *acc_count
 void createAcc(bankAccount *acc_arr[], int *acc_count)
 {
     printf("\n---------- CREATE ACCOUNT ----------\n");
+    printf("NOTE: You cannot cancel this process!\n\n");
     bankAccount *acc = malloc(sizeof(bankAccount));
 
     enterName(acc);
@@ -877,5 +877,3 @@ int main()
     menu(acc_arr, &acc_count); // launch menu to start program
     return 0;
 }
-// cd OneDrive/Documents/zbanksys
-// .\index.exe
