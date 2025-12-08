@@ -4,7 +4,7 @@ Banking system application made with C, part of programming coursework.
 # How to run & use this project
 Before running 'index.c', please ensure 'database' folder exists in the same directory as 'index.c', it is needed to run the program. Download the folder if it doesn't exist.
 To run the program, enter in terminal: cd Downloads/banking_system_36400092
-Afterwards, enter in terminal: ./index.c 
+Afterwards, enter in terminal: ./index.exe
 
 # Main Menu
 Upon startup, user is prompted with the main menu, you can choose an operation by entering the numbers or LOWERCASE words specified.
